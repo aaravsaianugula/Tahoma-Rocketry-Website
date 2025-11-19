@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Rocket } from "lucide-react";
+import Link from "next/link";
 
 export default function JoinCTA() {
   return (
@@ -36,20 +37,24 @@ export default function JoinCTA() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 animate-slide-up" style={{ animationDelay: "0.2s" }}>
-            <Button
-              variant="default"
-              size="xl"
-              className="bg-white text-space-blue hover:bg-gray-100 hover:scale-105 min-w-[200px]"
-            >
-              Apply Now
-            </Button>
-            <Button
-              variant="outline"
-              size="xl"
-              className="bg-transparent text-white border-white/50 hover:bg-white/10 min-w-[200px]"
-            >
-              Learn More
-            </Button>
+            <Link href="/register">
+              <Button
+                variant="default"
+                size="xl"
+                className="bg-white text-space-blue hover:bg-gray-100 hover:scale-105 min-w-[200px]"
+              >
+                Apply Now
+              </Button>
+            </Link>
+            <Link href="/about">
+              <Button
+                variant="outline"
+                size="xl"
+                className="bg-transparent text-white border-white/50 hover:bg-white/10 min-w-[200px]"
+              >
+                Learn More
+              </Button>
+            </Link>
           </div>
 
           {/* Stats bar */}

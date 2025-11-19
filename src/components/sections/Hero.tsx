@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Rocket, ChevronDown } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 
 // Dynamically import 3D component to avoid SSR issues
@@ -134,20 +135,24 @@ export default function Hero() {
             className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-slide-up"
             style={{ animationDelay: "0.7s" }}
           >
-            <Button
-              variant="gradient"
-              size="xl"
-              className="min-w-[200px] shadow-2xl hover:shadow-[0_0_30px_rgba(0,217,255,0.5)] transition-all"
-            >
-              Join Our Club
-            </Button>
-            <Button
-              variant="outline"
-              size="xl"
-              className="min-w-[200px] bg-white/10 text-white border-white/30 hover:bg-white/20 backdrop-blur-sm"
-            >
-              View Launches
-            </Button>
+            <Link href="/register">
+              <Button
+                variant="gradient"
+                size="xl"
+                className="min-w-[200px] shadow-2xl hover:shadow-[0_0_30px_rgba(0,217,255,0.5)] transition-all"
+              >
+                Join Our Club
+              </Button>
+            </Link>
+            <Link href="/events">
+              <Button
+                variant="outline"
+                size="xl"
+                className="min-w-[200px] bg-white/10 text-white border-white/30 hover:bg-white/20 backdrop-blur-sm"
+              >
+                View Events
+              </Button>
+            </Link>
           </div>
         </div>
 

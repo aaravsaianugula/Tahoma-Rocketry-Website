@@ -73,9 +73,11 @@ export default function Navbar() {
 
             {/* CTA Button - Desktop */}
             <div className="hidden lg:block">
-              <Button variant="gradient" size="lg" className="shadow-lg">
-                Join Now
-              </Button>
+              <Link href="/register">
+                <Button variant="gradient" size="lg" className="shadow-lg">
+                  Join Now
+                </Button>
+              </Link>
             </div>
 
             {/* Mobile Menu Button */}
@@ -118,14 +120,16 @@ export default function Navbar() {
               {link.name}
             </Link>
           ))}
-          <Button
-            variant="gradient"
-            size="xl"
-            className="mt-4 animate-slide-up shadow-2xl"
-            style={{ animationDelay: "0.7s" }}
-          >
-            Join Now
-          </Button>
+          <Link href="/register" onClick={() => setIsOpen(false)}>
+            <Button
+              variant="gradient"
+              size="xl"
+              className="mt-4 animate-slide-up shadow-2xl"
+              style={{ animationDelay: "0.7s" }}
+            >
+              Join Now
+            </Button>
+          </Link>
         </div>
       </div>
     </>
