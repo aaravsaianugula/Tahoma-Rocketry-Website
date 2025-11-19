@@ -1,0 +1,210 @@
+// Prisma schema for Tahoma Rocketry Club
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MEMBER
+  GUEST
+}
+
+enum EventType {
+  MEETING
+  LAUNCH
+  COMPETITION
+  FUNDRAISER
+  WORKSHOP
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
+enum RSVPResponse {
+  GOING
+  NOT_GOING
+  MAYBE
+}
+
+enum PhotoStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AnnouncementPriority {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+model User {
+  id                      String    @id @default(uuid())
+  email                   String    @unique
+  emailVerified           DateTime?
+  passwordHash            String
+  name                    String
+  role                    UserRole  @default(MEMBER)
+  gradeLevel              Int?
+  graduationYear          Int?
+  phone                   String?
+  parentEmail             String?
+  profilePhotoUrl         String?
+  bio                     String?
+  failedLoginAttempts     Int       @default(0)
+  accountLockedUntil      DateTime?
+  emailVerificationToken  String?
+  passwordResetToken      String?
+  passwordResetExpires    DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  lastLoginAt             DateTime?
+
+  // Relations
+  eventsCreated           Event[]       @relation("EventCreator")
+  rsvps                   RSVP[]
+  photos                  Photo[]       @relation("PhotoUploader")
+  photosApproved          Photo[]       @relation("PhotoApprover")
+  comments                Comment[]
+  announcementsCreated    Announcement[]
+  auditLogs               AuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Event {
+  id                String        @id @default(uuid())
+  title             String
+  description       String?
+  eventType         EventType
+  startTime         DateTime
+  endTime           DateTime?
+  location          String?
+  locationLat       Float?
+  locationLng       Float?
+  maxAttendees      Int?
+  coverImageUrl     String?
+  recurringPattern  String?       // 'none', 'weekly', 'monthly'
+  recurringUntil    DateTime?
+  status            EventStatus   @default(PUBLISHED)
+  createdById       String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  createdBy         User          @relation("EventCreator", fields: [createdById], references: [id])
+  rsvps             RSVP[]
+  photos            Photo[]
+
+  @@index([eventType])
+  @@index([startTime])
+  @@index([status])
+}
+
+model RSVP {
+  id          String        @id @default(uuid())
+  userId      String
+  eventId     String
+  response    RSVPResponse
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event       Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([eventId])
+}
+
+model Photo {
+  id              String        @id @default(uuid())
+  userId          String?
+  eventId         String?
+  title           String?
+  description     String?
+  photoUrl        String
+  thumbnailUrl    String?
+  album           String?
+  status          PhotoStatus   @default(PENDING)
+  approvedById    String?
+  approvedAt      DateTime?
+  likesCount      Int           @default(0)
+  createdAt       DateTime      @default(now())
+
+  // Relations
+  uploadedBy      User?         @relation("PhotoUploader", fields: [userId], references: [id], onDelete: SetNull)
+  event           Event?        @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  approvedBy      User?         @relation("PhotoApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  comments        Comment[]
+
+  @@index([status])
+  @@index([album])
+  @@index([eventId])
+}
+
+model Comment {
+  id          String        @id @default(uuid())
+  userId      String
+  photoId     String
+  content     String
+  status      String        @default("approved") // 'approved', 'flagged', 'removed'
+  createdAt   DateTime      @default(now())
+
+  // Relations
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photo       Photo         @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@index([photoId])
+}
+
+model Announcement {
+  id              String                @id @default(uuid())
+  title           String
+  content         String
+  priority        AnnouncementPriority  @default(NORMAL)
+  targetAudience  String                @default("all") // 'all', 'members', 'admins'
+  createdById     String
+  publishedAt     DateTime?
+  expiresAt       DateTime?
+  sendEmail       Boolean               @default(false)
+  sendPush        Boolean               @default(false)
+  createdAt       DateTime              @default(now())
+
+  // Relations
+  createdBy       User                  @relation(fields: [createdById], references: [id])
+
+  @@index([publishedAt])
+  @@index([targetAudience])
+}
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  userId      String?
+  action      String
+  entityType  String?   // 'user', 'event', 'photo', etc.
+  entityId    String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  user        User?     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
