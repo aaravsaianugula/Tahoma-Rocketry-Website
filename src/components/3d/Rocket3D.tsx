@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, useGLTF, PerspectiveCamera, Float } from "@react-three/drei";
+import { OrbitControls, useGLTF, PerspectiveCamera, Float, Stars, Sparkles } from "@react-three/drei";
 import { useRef, Suspense } from "react";
 import * as THREE from "three";
 
@@ -11,10 +11,11 @@ function RocketModel() {
   // Load the 3D rocket model
   const { scene } = useGLTF("/assets/3d/rocket.glb");
 
-  // Auto-rotate the rocket
+  // Auto-rotate the rocket with smooth animation
   useFrame((state) => {
     if (groupRef.current) {
       groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.3;
+      groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.2;
     }
   });
 
@@ -32,24 +33,64 @@ function RocketModel() {
   );
 }
 
+// Particle system for exhaust/propulsion effect
+function ExhaustParticles() {
+  const particlesRef = useRef<THREE.Points>(null);
+
+  useFrame((state) => {
+    if (particlesRef.current) {
+      particlesRef.current.rotation.y = state.clock.elapsedTime * 0.1;
+    }
+  });
+
+  return (
+    <Sparkles
+      count={100}
+      scale={8}
+      size={3}
+      speed={0.5}
+      opacity={0.6}
+      color="#00D9FF"
+      position={[0, -2, 0]}
+    />
+  );
+}
+
 export default function Rocket3D() {
   return (
     <div className="w-full h-full">
       <Canvas>
         <PerspectiveCamera makeDefault position={[0, 0, 5]} fov={50} />
 
-        {/* Lighting */}
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[10, 10, 5]} intensity={1} />
+        {/* Enhanced Lighting */}
+        <ambientLight intensity={0.3} />
+        <directionalLight position={[10, 10, 5]} intensity={1.2} castShadow />
         <directionalLight position={[-10, -10, -5]} intensity={0.5} />
-        <pointLight position={[0, 0, 5]} intensity={0.5} color="#00D9FF" />
+        <pointLight position={[0, 0, 5]} intensity={0.8} color="#00D9FF" />
+        <pointLight position={[5, 5, 0]} intensity={0.6} color="#7D33FF" />
+
+        {/* Stars background */}
+        <Stars
+          radius={100}
+          depth={50}
+          count={5000}
+          factor={4}
+          saturation={0}
+          fade
+          speed={1}
+        />
+
+        {/* Exhaust particles */}
+        <Suspense fallback={null}>
+          <ExhaustParticles />
+        </Suspense>
 
         {/* 3D Model */}
         <Suspense fallback={null}>
           <RocketModel />
         </Suspense>
 
-        {/* Controls */}
+        {/* Enhanced Controls */}
         <OrbitControls
           enableZoom={false}
           enablePan={false}
@@ -57,6 +98,8 @@ export default function Rocket3D() {
           autoRotateSpeed={0.5}
           minPolarAngle={Math.PI / 3}
           maxPolarAngle={Math.PI / 1.5}
+          dampingFactor={0.05}
+          rotateSpeed={0.5}
         />
       </Canvas>
     </div>
