@@ -387,8 +387,8 @@ export default function AdminDashboard() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                     <SpotlightCard className="bg-white/50 border-white/60">
                                         <div className="p-6">
-                                            <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4">
-                                                <Rocket className="w-6 h-6 text-blue-600" />
+                                            <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/20">
+                                                <Rocket className="w-6 h-6 text-cyan-400" />
                                             </div>
                                             <h3 className="text-3xl font-black text-slate-900 mb-1">{events.length}</h3>
                                             <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Active Missions</p>
@@ -396,8 +396,8 @@ export default function AdminDashboard() {
                                     </SpotlightCard>
                                     <SpotlightCard className="bg-white/50 border-white/60">
                                         <div className="p-6">
-                                            <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-4">
-                                                <ImageIcon className="w-6 h-6 text-purple-600" />
+                                            <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/20">
+                                                <ImageIcon className="w-6 h-6 text-cyan-400" />
                                             </div>
                                             <h3 className="text-3xl font-black text-slate-900 mb-1">{galleryItems.length}</h3>
                                             <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Visual Assets</p>
@@ -405,8 +405,8 @@ export default function AdminDashboard() {
                                     </SpotlightCard>
                                     <SpotlightCard className="bg-white/50 border-white/60">
                                         <div className="p-6">
-                                            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
-                                                <Users className="w-6 h-6 text-emerald-600" />
+                                            <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/20">
+                                                <Users className="w-6 h-6 text-cyan-400" />
                                             </div>
                                             <h3 className="text-3xl font-black text-slate-900 mb-1">{rsvps.length}</h3>
                                             <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Squadron Pilots</p>
@@ -414,8 +414,8 @@ export default function AdminDashboard() {
                                     </SpotlightCard>
                                     <SpotlightCard className="bg-white/50 border-white/60">
                                         <div className="p-6">
-                                            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4">
-                                                <BarChart3 className="w-6 h-6 text-amber-600" />
+                                            <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/20">
+                                                <BarChart3 className="w-6 h-6 text-cyan-400" />
                                             </div>
                                             <h3 className="text-3xl font-black text-slate-900 mb-1">100%</h3>
                                             <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">System Status</p>

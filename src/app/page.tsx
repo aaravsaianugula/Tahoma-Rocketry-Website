@@ -24,9 +24,50 @@ import { BentoGrid, BentoGridItem } from "@/components/ui/bento-grid";
 import { TrueFocus } from "@/components/ui/true-focus";
 import { Home as HomeIcon, Rocket, Users, Calendar, Image as ImageIcon, Mail, Wrench, Star } from "lucide-react";
 
+import { createClient } from "@/utils/supabase/client";
+import { useEffect, useState } from "react";
+
 export default function Home() {
-  const nextLaunch = EVENTS.find(e => e.type === "launch");
+  const [nextLaunch, setNextLaunch] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const fundraiser = EVENTS.find(e => e.type === "fundraiser");
+
+  useEffect(() => {
+    const fetchNextLaunch = async () => {
+      const supabase = createClient();
+
+      // 1. Try to find the next UPCOMING launch
+      const { data: futureData, error: futureError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('type', 'launch')
+        .gte('date', new Date().toISOString())
+        .order('date', { ascending: true })
+        .limit(1)
+        .single();
+
+      if (futureData) {
+        setNextLaunch(futureData);
+      } else {
+        // 2. Fallback: Find the MOST RECENT launch (even if past)
+        // This ensures the section doesn't disappear if there are no future events
+        const { data: latestData, error: latestError } = await supabase
+          .from('events')
+          .select('*')
+          .eq('type', 'launch')
+          .order('date', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (latestData) {
+          setNextLaunch(latestData);
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchNextLaunch();
+  }, []);
 
   const staggerContainer: Variants = {
     hidden: { opacity: 0 },
