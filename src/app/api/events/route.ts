@@ -29,23 +29,30 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
+        const eventsToInsert = Array.isArray(body) ? body : [body];
 
         // Validation
-        if (!body.title || !body.date || !body.type) {
-            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        for (const event of eventsToInsert) {
+            if (!event.title || !event.date || !event.type) {
+                return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+            }
         }
+
+        // Map to DB columns (ensure clean payload)
+        const payload = eventsToInsert.map((event: any) => ({
+            title: event.title,
+            date: event.date,
+            description: event.description,
+            location: event.location,
+            type: event.type,
+            short_description: event.shortDescription, // Handle camelCase to snake_case if needed, or just pass as is if DB matches
+            long_description: event.longDescription
+        }));
 
         const { data, error } = await supabase
             .from('events')
-            .insert([{
-                title: body.title,
-                date: body.date,
-                description: body.description,
-                location: body.location,
-                type: body.type
-            }])
-            .select()
-            .single();
+            .insert(payload)
+            .select();
 
         if (error) throw error;
 

@@ -25,6 +25,44 @@ export function createClient() {
                 signOut: async () => {
                     return { error: null }
                 }
+            },
+            from: (table: string) => {
+                return {
+                    select: (columns: string) => {
+                        return {
+                            eq: (column: string, value: any) => {
+                                return {
+                                    gte: (column: string, value: any) => {
+                                        return {
+                                            order: (column: string, options: any) => {
+                                                return {
+                                                    limit: (count: number) => {
+                                                        return {
+                                                            single: async () => {
+                                                                return { data: null, error: null }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    order: (column: string, options: any) => {
+                                        return {
+                                            limit: (count: number) => {
+                                                return {
+                                                    single: async () => {
+                                                        return { data: null, error: null }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         } as any
     }

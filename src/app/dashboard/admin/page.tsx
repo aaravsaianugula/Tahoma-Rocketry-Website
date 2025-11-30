@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { SpotlightCard } from "@/components/ui/cards";
-import { Calendar, Edit, Trash2, Plus, Users, Rocket, BarChart3, Image as ImageIcon, LogOut, Search, Filter, ChevronRight } from "lucide-react";
+import { Calendar, Edit, Trash2, Plus, Users, Rocket, BarChart3, Image as ImageIcon, LogOut, Search, Filter, ChevronRight, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TextPressure } from "@/components/ui/text-pressure";
 import { MagneticButton } from "@/components/ui/magnetic-button";
@@ -30,6 +30,14 @@ export default function AdminDashboard() {
         shortDescription: "",
         longDescription: ""
     });
+
+
+
+    // Recurrence State
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [recurrenceFrequency, setRecurrenceFrequency] = useState<"weekly" | "biweekly" | "monthly">("weekly");
+    const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
+    const [selectedDays, setSelectedDays] = useState<number[]>([]); // 0=Sun, 1=Mon, etc.
 
     // Gallery State
     const [showAddMediaModal, setShowAddMediaModal] = useState(false);
@@ -113,10 +121,69 @@ export default function AdminDashboard() {
     const handleCreateEvent = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            let payload: any = newEvent;
+
+            if (isRecurring && recurrenceEndDate) {
+                const events = [];
+                // If no start date is provided for a recurring event, default to today
+                let currentDate = newEvent.date ? new Date(newEvent.date) : new Date();
+                const endDate = new Date(recurrenceEndDate);
+
+                // Validation: Ensure end date is after start date
+                if (endDate <= currentDate) {
+                    alert("End date must be after the start date.");
+                    return;
+                }
+
+                // Prevent infinite loops or excessive creation
+                let count = 0;
+                const maxEvents = 100; // Safety limit
+
+                if (recurrenceFrequency === 'weekly' && selectedDays.length > 0) {
+                    // Day-specific weekly recurrence (e.g., Mon/Wed)
+                    while (currentDate <= endDate && count < maxEvents) {
+                        if (selectedDays.includes(currentDate.getDay())) {
+                            events.push({
+                                ...newEvent,
+                                date: currentDate.toISOString(),
+                            });
+                            count++;
+                        }
+                        // Advance one day
+                        currentDate.setDate(currentDate.getDate() + 1);
+                    }
+                } else {
+                    // Standard recurrence
+                    while (currentDate <= endDate && count < maxEvents) {
+                        events.push({
+                            ...newEvent,
+                            date: currentDate.toISOString(),
+                        });
+
+                        // Increment date
+                        if (recurrenceFrequency === 'weekly') {
+                            currentDate.setDate(currentDate.getDate() + 7);
+                        } else if (recurrenceFrequency === 'biweekly') {
+                            currentDate.setDate(currentDate.getDate() + 14);
+                        } else if (recurrenceFrequency === 'monthly') {
+                            currentDate.setMonth(currentDate.getMonth() + 1);
+                        }
+                        count++;
+                    }
+                }
+
+                if (events.length === 0) {
+                    // Fallback if logic produced no events (e.g. wrong days selected for range)
+                    events.push(newEvent);
+                }
+
+                payload = events;
+            }
+
             const response = await fetch('/api/events', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newEvent),
+                body: JSON.stringify(payload),
             });
 
             if (response.ok) {
@@ -130,10 +197,17 @@ export default function AdminDashboard() {
                     shortDescription: "",
                     longDescription: ""
                 });
+                setIsRecurring(false);
+                setRecurrenceEndDate("");
+                setSelectedDays([]);
                 fetchEvents();
+            } else {
+                const errorData = await response.json();
+                alert(`Failed to create event: ${errorData.error}`);
             }
         } catch (error) {
             console.error('Failed to create event:', error);
+            alert('An unexpected error occurred.');
         }
     };
 
@@ -284,7 +358,7 @@ export default function AdminDashboard() {
 
                     <nav className="space-y-3">
                         {[
-                            { id: "overview", label: "Overview", icon: BarChart3 },
+                            { id: "overview", label: "Overview", icon: LayoutDashboard },
                             { id: "events", label: "Events", icon: Calendar },
                             { id: "gallery", label: "Gallery", icon: ImageIcon },
                             { id: "rsvps", label: "RSVPs", icon: Users },
@@ -301,7 +375,7 @@ export default function AdminDashboard() {
                                 )}
                                 title={isSidebarCollapsed ? item.label : undefined}
                             >
-                                <item.icon className={cn("w-5 h-5 shrink-0 transition-colors", activeTab === item.id ? "text-cyan-400" : "text-slate-400 group-hover:text-slate-900")} />
+                                <item.icon className={cn("w-5 h-5 shrink-0 transition-colors", activeTab === item.id ? "text-white" : "text-slate-400 group-hover:text-slate-900")} />
                                 <motion.span
                                     animate={{ opacity: isSidebarCollapsed ? 0 : 1, width: isSidebarCollapsed ? 0 : "auto" }}
                                     className="relative z-10 whitespace-nowrap overflow-hidden"
@@ -434,13 +508,11 @@ export default function AdminDashboard() {
                                 className="space-y-8"
                             >
                                 <div className="flex justify-end">
-                                    <MagneticButton>
-                                        <button
-                                            onClick={() => setShowCreateModal(true)}
-                                            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-cyan-500 text-white font-bold uppercase tracking-wider text-sm transition-all shadow-lg hover:shadow-cyan-500/30"
-                                        >
-                                            <Plus className="w-4 h-4" /> Initialize Event
-                                        </button>
+                                    <MagneticButton
+                                        onClick={() => setShowCreateModal(true)}
+                                        className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-cyan-500 text-white font-bold uppercase tracking-wider text-sm transition-all shadow-lg hover:shadow-cyan-500/30"
+                                    >
+                                        <Plus className="w-4 h-4" /> Initialize Event
                                     </MagneticButton>
                                 </div>
 
@@ -476,7 +548,7 @@ export default function AdminDashboard() {
                                                         className="bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors"
                                                         value={newEvent.date}
                                                         onChange={e => setNewEvent({ ...newEvent, date: e.target.value })}
-                                                        required
+                                                        required={!isRecurring}
                                                     />
                                                     <input
                                                         type="text"
@@ -499,6 +571,78 @@ export default function AdminDashboard() {
                                                     value={newEvent.shortDescription}
                                                     onChange={e => setNewEvent({ ...newEvent, shortDescription: e.target.value })}
                                                 />
+
+                                                {/* Recurrence Controls */}
+                                                <div className="bg-slate-50 border-2 border-slate-200 rounded-xl p-4">
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <input
+                                                            type="checkbox"
+                                                            id="isRecurring"
+                                                            className="w-5 h-5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                                                            checked={isRecurring}
+                                                            onChange={e => setIsRecurring(e.target.checked)}
+                                                        />
+                                                        <label htmlFor="isRecurring" className="font-bold text-slate-900 uppercase tracking-wider text-sm">Repeat Event?</label>
+                                                    </div>
+
+                                                    {isRecurring && (
+                                                        <div className="grid grid-cols-1 gap-4">
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div>
+                                                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Frequency</label>
+                                                                    <select
+                                                                        className="w-full bg-white border-2 border-slate-200 focus:border-slate-900 rounded-lg p-2 font-bold text-slate-900 outline-none"
+                                                                        value={recurrenceFrequency}
+                                                                        onChange={e => setRecurrenceFrequency(e.target.value as any)}
+                                                                    >
+                                                                        <option value="weekly">Weekly</option>
+                                                                        <option value="biweekly">Bi-Weekly</option>
+                                                                        <option value="monthly">Monthly</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Repeat Until</label>
+                                                                    <input
+                                                                        type="date"
+                                                                        className="w-full bg-white border-2 border-slate-200 focus:border-slate-900 rounded-lg p-2 font-bold text-slate-900 outline-none"
+                                                                        value={recurrenceEndDate}
+                                                                        onChange={e => setRecurrenceEndDate(e.target.value)}
+                                                                        required={isRecurring}
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            {recurrenceFrequency === 'weekly' && (
+                                                                <div>
+                                                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Repeat On</label>
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+                                                                            <button
+                                                                                key={day}
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    if (selectedDays.includes(index)) {
+                                                                                        setSelectedDays(selectedDays.filter(d => d !== index));
+                                                                                    } else {
+                                                                                        setSelectedDays([...selectedDays, index]);
+                                                                                    }
+                                                                                }}
+                                                                                className={cn(
+                                                                                    "px-3 py-1 rounded-lg text-xs font-bold uppercase transition-all border-2",
+                                                                                    selectedDays.includes(index)
+                                                                                        ? "bg-slate-900 text-white border-slate-900"
+                                                                                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-400"
+                                                                                )}
+                                                                            >
+                                                                                {day}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <div className="flex justify-end gap-4">
                                                     <button
                                                         type="button"

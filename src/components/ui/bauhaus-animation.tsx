@@ -21,7 +21,12 @@ export function BauhausAnimation({ className }: { className?: string }) {
         resize();
 
         // Bauhaus Shapes
-        const shapes = [
+        type Shape =
+            | { type: "rect"; x: number; y: number; w: number; h: number; color: string; speed: number }
+            | { type: "circle"; x: number; y: number; r: number; color: string; speed: number }
+            | { type: "line"; x1: number; y1: number; x2: number; y2: number; color: string; speed: number };
+
+        const shapes: Shape[] = [
             { type: "rect", x: 0.1, y: 0.1, w: 0.3, h: 0.4, color: "#f1f5f9", speed: 0.0005 }, // Slate-100
             { type: "circle", x: 0.6, y: 0.3, r: 0.15, color: "#e2e8f0", speed: -0.0003 }, // Slate-200
             { type: "rect", x: 0.5, y: 0.6, w: 0.4, h: 0.1, color: "#f8fafc", speed: 0.0007 }, // Slate-50
