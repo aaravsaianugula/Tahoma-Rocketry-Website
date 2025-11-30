@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+:root {
+  /* Brand-Aligned Pastel Palette */
+  --color-bg-cream: #FDFBF7;
+  --color-text-slate: #1E293B;
+
+  /* Brand Pastels */
+  --color-pastel-gold: #FEF3C7;
+  /* Soft version of #D4AF37 */
+  --color-pastel-rose: #FFE4E6;
+  /* Soft version of #DC2626 */
+  --color-pastel-blue: #E0F2FE;
+  /* Aerospace Sky */
+
+  --color-accent-primary: #D97706;
+  /* Darker Gold for text/buttons */
+  --color-accent-secondary: #E11D48;
+  /* Darker Rose for text/buttons */
+
+  /* Radical Light / Neo-Brutalist Variables */
+  --radical-shadow: 8px 8px 0px 0px #0F172A;
+  --radical-border: 2px solid #0F172A;
+  --radical-bg: #FDFBF7;
+  --radical-text: #0F172A;
+
+  --foreground-rgb: 30, 41, 59;
+  --background-start-rgb: 253, 251, 247;
+  --background-end-rgb: 253, 251, 247;
+}
+
+/* Custom Utilities */
+/* Custom Utilities */
+@utility text-gradient {
+  @apply text-white;
+}
+
+@utility glass-panel {
+  @apply bg-white/5 backdrop-blur-md border border-white/10;
+}
+
+@utility container-width {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Base Styles */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-bg-space);
+    color: var(--color-text-primary);
+    background-image:
+      radial-gradient(circle at 50% 0%, #0f172a 0%, transparent 40%);
+    /* Slate-900 highlight (Subtle) */
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-bold tracking-tight;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-space);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}

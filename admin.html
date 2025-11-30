@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Tahoma Rocketry Club</title>
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        /* Admin Specific Styles */
+        .admin-badge {
+            background: rgba(245, 82, 58, 0.2);
+            color: var(--rocket-red);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+
+<body class="dashboard-body">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <img src="assets/Logo.png" alt="TRC Logo" style="height: 32px; width: auto;">
+            <span style="font-weight: 700; font-family: var(--font-heading);">TRC Admin</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="#" class="active"><span>📊</span> Overview</a></li>
+                <li><a href="#"><span>📅</span> Events</a></li>
+                <li><a href="#"><span>👥</span> Members</a></li>
+                <li><a href="#"><span>📝</span> RSVPs</a></li>
+                <li><a href="#"><span>🖼️</span> Media</a></li>
+                <li><a href="#"><span>📢</span> Announcements</a></li>
+                <li><a href="#"><span>⚙️</span> Settings</a></li>
+            </ul>
+        </nav>
+
+        <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+            <a href="index.html"
+                style="color: rgba(255,255,255,0.5); font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>👁️</span> View Public Site
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="page-title">
+                <h2 style="font-size: 1.25rem; margin: 0;">Admin Overview</h2>
+            </div>
+
+            <div class="user-profile">
+                <div style="text-align: right;">
+                    <div style="font-weight: 600; font-size: 0.9rem;">Jane Smith <span class="admin-badge">Admin</span>
+                    </div>
+                    <div style="font-size: 0.8rem; opacity: 0.6;">Club President</div>
+                </div>
+                <div class="user-avatar" style="background: var(--rocket-red);">JS</div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Stats Grid -->
+            <div class="grid-4" style="margin-bottom: 2rem;">
+                <div class="stat-card fade-up">
+                    <h3 style="font-size: 1rem; opacity: 0.7; margin-bottom: 0.5rem;">Total Members</h3>
+                    <div class="stat-value">42</div>
+                    <p style="font-size: 0.9rem; opacity: 0.6;">+3 this week</p>
+                </div>
+
+                <div class="stat-card fade-up" style="transition-delay: 100ms;">
+                    <h3 style="font-size: 1rem; opacity: 0.7; margin-bottom: 0.5rem;">Next Event RSVPs</h3>
+                    <div class="stat-value" style="color: var(--patch-gold);">28</div>
+                    <p style="font-size: 0.9rem; opacity: 0.6;">/ 50 Capacity</p>
+                </div>
+
+                <div class="stat-card fade-up" style="transition-delay: 200ms;">
+                    <h3 style="font-size: 1rem; opacity: 0.7; margin-bottom: 0.5rem;">Pending Approvals</h3>
+                    <div class="stat-value" style="color: var(--rocket-orange);">5</div>
+                    <p style="font-size: 0.9rem; opacity: 0.6;">New signups</p>
+                </div>
+
+                <div class="stat-card fade-up" style="transition-delay: 300ms;">
+                    <h3 style="font-size: 1rem; opacity: 0.7; margin-bottom: 0.5rem;">Media Storage</h3>
+                    <div class="stat-value" style="color: var(--mountain-blue);">1.2 GB</div>
+                    <p style="font-size: 0.9rem; opacity: 0.6;">85% used</p>
+                </div>
+            </div>
+
+            <!-- Recent Activity / Management -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+
+                <!-- Members Table -->
+                <section class="fade-up">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3>Recent Members</h3>
+                        <button class="btn btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.85rem;">View
+                            All</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Joined</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Alice Johnson</td>
+                                    <td>Student</td>
+                                    <td><span class="badge"
+                                            style="color: #4facfe; background: rgba(31, 118, 200, 0.2); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">Active</span>
+                                    </td>
+                                    <td>Nov 20</td>
+                                </tr>
+                                <tr>
+                                    <td>Bob Williams</td>
+                                    <td>Parent</td>
+                                    <td><span class="badge"
+                                            style="color: #4facfe; background: rgba(31, 118, 200, 0.2); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">Active</span>
+                                    </td>
+                                    <td>Nov 19</td>
+                                </tr>
+                                <tr>
+                                    <td>Charlie Brown</td>
+                                    <td>Student</td>
+                                    <td><span class="badge"
+                                            style="color: var(--rocket-orange); background: rgba(246, 148, 58, 0.2); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">Pending</span>
+                                    </td>
+                                    <td>Nov 18</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Quick Actions -->
+                <section class="fade-up" style="transition-delay: 100ms;">
+                    <h3 style="margin-bottom: 1rem;">Quick Actions</h3>
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <button class="btn btn-primary" style="width: 100%; justify-content: flex-start;">
+                            <span style="margin-right: 0.5rem;">➕</span> Create Event
+                        </button>
+                        <button class="btn btn-secondary" style="width: 100%; justify-content: flex-start;">
+                            <span style="margin-right: 0.5rem;">📢</span> Post Announcement
+                        </button>
+                        <button class="btn btn-secondary" style="width: 100%; justify-content: flex-start;">
+                            <span style="margin-right: 0.5rem;">📤</span> Upload Media
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/main.js"></script>
+</body>
+
+</html>
