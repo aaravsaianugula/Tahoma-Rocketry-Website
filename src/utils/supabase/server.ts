@@ -25,49 +25,55 @@ export async function createClient() {
                 return {
                     select: (columns: string) => {
                         return {
-                            gte: (column: string, value: any) => {
+                            eq: (column: string, value: any) => {
                                 return {
+                                    gte: (column: string, value: any) => {
+                                        return {
+                                            order: (column: string, options: any) => {
+                                                return { data: [], error: null }
+                                            }
+                                        }
+                                    },
                                     order: (column: string, options: any) => {
                                         return { data: [], error: null }
+                                    },
+                                    single: async () => {
+                                        return { data: null, error: null }
                                     }
                                 }
                             },
                             order: (column: string, options: any) => {
                                 return { data: [], error: null }
-                            },
-                            insert: (payload: any) => {
+                            }
+                        }
+                    },
+                    insert: (payload: any) => {
+                        return {
+                            select: () => {
+                                const data = Array.isArray(payload) ? payload : [payload];
+                                return { data: data, error: null }
+                            }
+                        }
+                    },
+                    update: (payload: any) => {
+                        return {
+                            eq: (column: string, value: any) => {
                                 return {
                                     select: () => {
-                                        // Ensure payload is an array for consistent return type if needed, 
-                                        // but usually select() returns data matching the insert.
-                                        // If payload is an array, return it. If single object, return [object] or object depending on expectation.
-                                        // The API route expects 'data' to be the inserted records.
-                                        const data = Array.isArray(payload) ? payload : [payload];
-                                        return { data: data, error: null }
-                                    }
-                                }
-                            },
-                            update: (payload: any) => {
-                                return {
-                                    eq: (column: string, value: any) => {
                                         return {
-                                            select: () => {
-                                                return {
-                                                    single: async () => {
-                                                        return { data: payload, error: null }
-                                                    }
-                                                }
+                                            single: async () => {
+                                                return { data: payload, error: null }
                                             }
                                         }
                                     }
                                 }
-                            },
-                            delete: () => {
-                                return {
-                                    eq: (column: string, value: any) => {
-                                        return { error: null }
-                                    }
-                                }
+                            }
+                        }
+                    },
+                    delete: () => {
+                        return {
+                            eq: (column: string, value: any) => {
+                                return { error: null }
                             }
                         }
                     }
