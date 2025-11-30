@@ -120,6 +120,9 @@ export default function AdminDashboard() {
     // Event Handlers
     const handleCreateEvent = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log("DEBUG: handleCreateEvent triggered");
+        console.log("DEBUG: Current state:", { newEvent, isRecurring, recurrenceFrequency, recurrenceEndDate, selectedDays });
+
         try {
             let payload: any = newEvent;
 
@@ -180,11 +183,13 @@ export default function AdminDashboard() {
                 payload = events;
             }
 
+            console.log("DEBUG: Sending payload to API:", payload);
             const response = await fetch('/api/events', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
+            console.log("DEBUG: API Response status:", response.status);
 
             if (response.ok) {
                 setShowCreateModal(false);
@@ -203,6 +208,7 @@ export default function AdminDashboard() {
                 fetchEvents();
             } else {
                 const errorData = await response.json();
+                console.error("DEBUG: API Error:", errorData);
                 alert(`Failed to create event: ${errorData.error}`);
             }
         } catch (error) {
