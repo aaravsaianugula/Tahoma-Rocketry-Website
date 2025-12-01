@@ -12,9 +12,36 @@ import { cn } from "@/lib/utils";
 export default function ContactPage() {
     const [submitted, setSubmitted] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setSubmitted(true);
+
+        // Get form data
+        const form = e.target as HTMLFormElement;
+        const formData = new FormData(form);
+        const data = {
+            name: formData.get('name'),
+            email: formData.get('email'),
+            message: formData.get('message'),
+        };
+
+        try {
+            const response = await fetch('/api/contact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                setSubmitted(true);
+            } else {
+                console.error('Failed to send message');
+                // Optional: Add error handling UI
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+        }
     };
 
     return (
@@ -78,6 +105,7 @@ export default function ContactPage() {
                                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Callsign</label>
                                             <input
                                                 type="text"
+                                                name="name"
                                                 required
                                                 className="w-full bg-white/60 border-0 focus:ring-2 focus:ring-rose-400 rounded-2xl p-5 font-bold text-slate-900 placeholder:text-slate-300 transition-all shadow-sm hover:bg-white/80"
                                                 placeholder="Enter Name"
@@ -87,6 +115,7 @@ export default function ContactPage() {
                                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Frequency</label>
                                             <input
                                                 type="email"
+                                                name="email"
                                                 required
                                                 className="w-full bg-white/60 border-0 focus:ring-2 focus:ring-rose-400 rounded-2xl p-5 font-bold text-slate-900 placeholder:text-slate-300 transition-all shadow-sm hover:bg-white/80"
                                                 placeholder="Enter Email"
@@ -96,6 +125,7 @@ export default function ContactPage() {
                                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Transmission</label>
                                             <textarea
                                                 required
+                                                name="message"
                                                 rows={4}
                                                 className="w-full bg-white/60 border-0 focus:ring-2 focus:ring-rose-400 rounded-2xl p-5 font-bold text-slate-900 placeholder:text-slate-300 transition-all shadow-sm hover:bg-white/80 resize-none"
                                                 placeholder="Enter Message..."

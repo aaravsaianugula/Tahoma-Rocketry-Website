@@ -72,3 +72,67 @@ export async function DELETE(request: Request) {
         );
     }
 }
+
+export async function POST(request: Request) {
+    const supabase = await createClient();
+
+    try {
+        // Check authentication
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            return NextResponse.json(
+                { error: 'Unauthorized' },
+                { status: 401 }
+            );
+        }
+
+        const body = await request.json();
+        const { event_id, num_guests = 0, notes = '' } = body;
+
+        if (!event_id) {
+            return NextResponse.json(
+                { error: 'Event ID is required' },
+                { status: 400 }
+            );
+        }
+
+        // Check if already RSVP'd
+        const { data: existingRSVP } = await supabase
+            .from('rsvps')
+            .select('id')
+            .eq('event_id', event_id)
+            .eq('user_id', user.id)
+            .single();
+
+        if (existingRSVP) {
+            return NextResponse.json(
+                { error: 'You have already RSVP\'d to this event' },
+                { status: 400 }
+            );
+        }
+
+        // Insert RSVP
+        const { data, error } = await supabase
+            .from('rsvps')
+            .insert({
+                event_id,
+                user_id: user.id,
+                status: 'confirmed', // Default status
+                num_guests,
+                notes
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return NextResponse.json(data);
+
+    } catch (error) {
+        console.error('RSVP Error:', error);
+        return NextResponse.json(
+            { error: 'Failed to create RSVP' },
+            { status: 500 }
+        );
+    }
+}

@@ -4,7 +4,7 @@ export const siteConfig = {
     name: "Tahoma Rocketry Club",
     description: "Inspire, Build, Launch. The official website of the Tahoma Rocketry Club.",
     contact: {
-        email: "Thsrockrtryclub@gmail.com",
+        email: "Thsrocketryclub@gmail.com",
         phone: "206-973-6876",
         address: "23499 SE Tahoma Way, Maple Valley, WA 98038, USA",
     },

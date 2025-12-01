@@ -4,12 +4,18 @@ import { RetroGrid } from "@/components/ui/retro-grid";
 import { FadeIn } from "@/components/ui/text-animations";
 import { Marquee } from "@/components/ui/marquee";
 import { cn } from "@/lib/utils";
-import { Calendar, Clock, MapPin, Rocket, Terminal, Activity, Radio } from "lucide-react";
+import { Calendar, Clock, MapPin, Rocket, Terminal, Activity, Radio, Ticket } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function EventsPage() {
     const [filter, setFilter] = useState<"all" | "launch" | "fundraiser" | "meeting">("all");
     const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState<any>(null);
+    const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
+    const supabase = createClient();
+    const router = useRouter();
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -26,8 +32,49 @@ export default function EventsPage() {
             }
         };
 
+        const fetchUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+        };
+
         fetchEvents();
+        fetchUser();
     }, []);
+
+    const handleRSVP = async (eventId: string) => {
+        if (!user) {
+            router.push('/login');
+            return;
+        }
+
+        setRsvpLoading(eventId);
+        try {
+            const response = await fetch('/api/rsvps', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ event_id: eventId }),
+            });
+
+            if (response.ok) {
+                alert("RSVP Confirmed! We'll see you there.");
+                // Optionally refresh rsvp status or events
+            } else {
+                const data = await response.json();
+                if (data.error === "You have already RSVP'd to this event") {
+                    alert("You have already RSVP'd to this event.");
+                } else {
+                    alert("Failed to RSVP. Please try again.");
+                }
+            }
+        } catch (error) {
+            console.error("RSVP Error:", error);
+            alert("An error occurred.");
+        } finally {
+            setRsvpLoading(null);
+        }
+    };
 
     // Group events by title and pick the next upcoming one
     const uniqueEvents = events
@@ -149,6 +196,21 @@ export default function EventsPage() {
                                                         {event.location}
                                                     </div>
                                                 </div>
+
+                                                <button
+                                                    onClick={() => handleRSVP(event.id)}
+                                                    disabled={rsvpLoading === event.id}
+                                                    className="w-full mt-4 py-3 bg-slate-900 text-white font-black uppercase tracking-widest text-xs rounded-lg hover:bg-rose-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed relative z-20"
+                                                >
+                                                    {rsvpLoading === event.id ? (
+                                                        <span className="animate-pulse">Processing...</span>
+                                                    ) : (
+                                                        <>
+                                                            <Ticket className="w-4 h-4" />
+                                                            {user ? "RSVP Now" : "Sign In to RSVP"}
+                                                        </>
+                                                    )}
+                                                </button>
 
                                                 {/* Status Indicator */}
                                                 <div className="mt-auto pt-4 border-t-2 border-slate-100 flex justify-between items-center z-10">
