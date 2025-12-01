@@ -23,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
-      <body className={`${inter.className} bg-[#020410] text-slate-100 antialiased selection:bg-[#D4AF37]/30 selection:text-[#D4AF37]`}>
+      <body className={`${inter.className} bg-[#020410] text-slate-100 antialiased selection:bg-[#D4AF37]/30 selection:text-[#D4AF37]`} suppressHydrationWarning>
         <SmoothScroll>
           <CustomCursor />
           <SoundManager />

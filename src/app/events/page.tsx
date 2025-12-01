@@ -29,7 +29,18 @@ export default function EventsPage() {
         fetchEvents();
     }, []);
 
-    const filteredEvents = events.filter(e => filter === "all" || e.type === filter);
+    // Group events by title and pick the next upcoming one
+    const uniqueEvents = events
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .reduce((acc: any[], current) => {
+            const exists = acc.find(item => item.title === current.title);
+            if (!exists) {
+                acc.push(current);
+            }
+            return acc;
+        }, []);
+
+    const filteredEvents = uniqueEvents.filter(e => filter === "all" || e.type === filter);
 
     return (
         <div className="min-h-screen bg-[#FDFBF7] relative overflow-hidden selection:bg-rose-200 selection:text-rose-900 font-mono">

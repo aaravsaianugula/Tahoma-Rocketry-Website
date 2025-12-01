@@ -4,7 +4,7 @@ import { SpotlightCard } from "@/components/ui/cards";
 import { Calendar, Edit, Trash2, Plus, Users, Rocket, BarChart3, Image as ImageIcon, LogOut, Search, Filter, ChevronRight, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TextPressure } from "@/components/ui/text-pressure";
-import { MagneticButton } from "@/components/ui/magnetic-button";
+// import { MagneticButton } from "@/components/ui/magnetic-button";
 import { FadeIn, ShinyText } from "@/components/ui/text-animations";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -57,9 +57,10 @@ export default function AdminDashboard() {
     const fetchEvents = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/events');
+            const response = await fetch('/api/events', { cache: 'no-store' });
             if (response.ok) {
                 const data = await response.json();
+                // console.log("DEBUG: Fetched events:", data);
                 setEvents(data);
             }
         } catch (error) {
@@ -69,6 +70,7 @@ export default function AdminDashboard() {
         }
     };
 
+    // ... (other fetch functions)
     const fetchGallery = async () => {
         setLoading(true);
         try {
@@ -120,13 +122,12 @@ export default function AdminDashboard() {
     // Event Handlers
     const handleCreateEvent = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("DEBUG: handleCreateEvent triggered");
-        console.log("DEBUG: Current state:", { newEvent, isRecurring, recurrenceFrequency, recurrenceEndDate, selectedDays });
 
         try {
             let payload: any = newEvent;
 
             if (isRecurring && recurrenceEndDate) {
+                // ... (recurrence logic remains the same)
                 const events = [];
                 // If no start date is provided for a recurring event, default to today
                 let currentDate = newEvent.date ? new Date(newEvent.date) : new Date();
@@ -183,13 +184,11 @@ export default function AdminDashboard() {
                 payload = events;
             }
 
-            console.log("DEBUG: Sending payload to API:", payload);
             const response = await fetch('/api/events', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
-            console.log("DEBUG: API Response status:", response.status);
 
             if (response.ok) {
                 setShowCreateModal(false);
@@ -205,10 +204,10 @@ export default function AdminDashboard() {
                 setIsRecurring(false);
                 setRecurrenceEndDate("");
                 setSelectedDays([]);
+                alert("Event created successfully!");
                 fetchEvents();
             } else {
                 const errorData = await response.json();
-                console.error("DEBUG: API Error:", errorData);
                 alert(`Failed to create event: ${errorData.error}`);
             }
         } catch (error) {
@@ -218,7 +217,7 @@ export default function AdminDashboard() {
     };
 
     const handleDeleteEvent = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this event?')) return;
+        // if (!confirm('Are you sure you want to delete this event?')) return;
         try {
             const response = await fetch(`/api/events?id=${id}`, {
                 method: 'DELETE',
@@ -253,6 +252,17 @@ export default function AdminDashboard() {
     };
 
     // Gallery Handlers
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setNewMedia(prev => ({ ...prev, url: reader.result as string }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleAddMedia = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -280,7 +290,7 @@ export default function AdminDashboard() {
     };
 
     const handleDeleteMedia = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this item?')) return;
+        // if (!confirm('Are you sure you want to delete this item?')) return;
         try {
             const response = await fetch(`/api/gallery?id=${id}`, {
                 method: 'DELETE',
@@ -315,7 +325,7 @@ export default function AdminDashboard() {
     };
 
     const handleDeleteRSVP = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this RSVP?')) return;
+        // if (!confirm('Are you sure you want to delete this RSVP?')) return;
         try {
             const response = await fetch(`/api/rsvps?id=${id}`, {
                 method: 'DELETE',
@@ -514,12 +524,12 @@ export default function AdminDashboard() {
                                 className="space-y-8"
                             >
                                 <div className="flex justify-end">
-                                    <MagneticButton
+                                    <button
                                         onClick={() => setShowCreateModal(true)}
                                         className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-cyan-500 text-white font-bold uppercase tracking-wider text-sm transition-all shadow-lg hover:shadow-cyan-500/30"
                                     >
                                         <Plus className="w-4 h-4" /> Initialize Event
-                                    </MagneticButton>
+                                    </button>
                                 </div>
 
                                 {showCreateModal && (
@@ -806,14 +816,12 @@ export default function AdminDashboard() {
                                 className="space-y-8"
                             >
                                 <div className="flex justify-end">
-                                    <MagneticButton>
-                                        <button
-                                            onClick={() => setShowAddMediaModal(true)}
-                                            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-cyan-500 text-white font-bold uppercase tracking-wider text-sm transition-all shadow-lg hover:shadow-cyan-500/30"
-                                        >
-                                            <Plus className="w-4 h-4" /> Upload Asset
-                                        </button>
-                                    </MagneticButton>
+                                    <button
+                                        onClick={() => setShowAddMediaModal(true)}
+                                        className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-cyan-500 text-white font-bold uppercase tracking-wider text-sm transition-all shadow-lg hover:shadow-cyan-500/30"
+                                    >
+                                        <Plus className="w-4 h-4" /> Upload Asset
+                                    </button>
                                 </div>
 
                                 {showAddMediaModal && (
@@ -842,6 +850,15 @@ export default function AdminDashboard() {
                                                         <option value="image">Image</option>
                                                         <option value="video">Video</option>
                                                     </select>
+                                                    <div className="col-span-2 space-y-2">
+                                                        <label className="block text-xs font-bold text-slate-500 uppercase">Upload File</label>
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*,video/*"
+                                                            onChange={handleFileChange}
+                                                            className="w-full bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-cyan-500"
+                                                        />
+                                                    </div>
                                                     <input
                                                         type="text"
                                                         placeholder="Asset URL (e.g. /assets/...)"
@@ -1001,73 +1018,76 @@ export default function AdminDashboard() {
                                     ))}
                                 </div>
                             </motion.div>
-                        )}
+                        )
+                        }
 
-                        {activeTab === "rsvps" && (
-                            <motion.div
-                                key="rsvps"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="space-y-6"
-                            >
-                                <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-3xl overflow-hidden shadow-xl">
-                                    <table className="w-full text-left">
-                                        <thead className="bg-slate-50/50 border-b border-slate-100">
-                                            <tr>
-                                                <th className="p-6 font-black text-slate-900 uppercase tracking-wider text-xs">Pilot Name</th>
-                                                <th className="p-6 font-black text-slate-900 uppercase tracking-wider text-xs">Mission</th>
-                                                <th className="p-6 font-black text-slate-900 uppercase tracking-wider text-xs">Status</th>
-                                                <th className="p-6 font-black text-slate-900 uppercase tracking-wider text-xs">Date</th>
-                                                <th className="p-6 text-right font-black text-slate-900 uppercase tracking-wider text-xs">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {rsvps.map((rsvp) => (
-                                                <tr key={rsvp.id} className="hover:bg-white/50 transition-colors group">
-                                                    <td className="p-6">
-                                                        <div className="font-bold text-slate-900">{rsvp.user_name || 'Unknown Pilot'}</div>
-                                                        <div className="text-xs text-slate-400 font-medium">{rsvp.user_email}</div>
-                                                    </td>
-                                                    <td className="p-6 font-medium text-slate-600">{rsvp.events?.title || 'Unknown Mission'}</td>
-                                                    <td className="p-6">
-                                                        <span className={cn(
-                                                            "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider",
-                                                            rsvp.status === 'attending' ? "bg-emerald-100 text-emerald-600" :
-                                                                rsvp.status === 'maybe' ? "bg-amber-100 text-amber-600" :
-                                                                    "bg-slate-100 text-slate-600"
-                                                        )}>
-                                                            {rsvp.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-6 font-medium text-slate-600">{new Date(rsvp.created_at).toLocaleDateString()}</td>
-                                                    <td className="p-6 text-right">
-                                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button
-                                                                onClick={() => handleDeleteRSVP(rsvp.id)}
-                                                                className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-500 transition-colors"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {rsvps.length === 0 && (
+                        {
+                            activeTab === "rsvps" && (
+                                <motion.div
+                                    key="rsvps"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="space-y-6"
+                                >
+                                    <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-3xl overflow-hidden shadow-xl">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-slate-50/50 border-b border-slate-100">
                                                 <tr>
-                                                    <td colSpan={5} className="p-12 text-center text-slate-400 font-medium">
-                                                        No active rosters found.
-                                                    </td>
+                                                    <th className="p-6 font-black text-slate-900 uppercase tracking-wider text-xs">Pilot Name</th>
+                                                    <th className="p-6 font-black text-slate-900 uppercase tracking-wider text-xs">Mission</th>
+                                                    <th className="p-6 font-black text-slate-900 uppercase tracking-wider text-xs">Status</th>
+                                                    <th className="p-6 font-black text-slate-900 uppercase tracking-wider text-xs">Date</th>
+                                                    <th className="p-6 text-right font-black text-slate-900 uppercase tracking-wider text-xs">Actions</th>
                                                 </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </motion.div>
-            </div>
-        </div>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {rsvps.map((rsvp) => (
+                                                    <tr key={rsvp.id} className="hover:bg-white/50 transition-colors group">
+                                                        <td className="p-6">
+                                                            <div className="font-bold text-slate-900">{rsvp.user_name || 'Unknown Pilot'}</div>
+                                                            <div className="text-xs text-slate-400 font-medium">{rsvp.user_email}</div>
+                                                        </td>
+                                                        <td className="p-6 font-medium text-slate-600">{rsvp.events?.title || 'Unknown Mission'}</td>
+                                                        <td className="p-6">
+                                                            <span className={cn(
+                                                                "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider",
+                                                                rsvp.status === 'attending' ? "bg-emerald-100 text-emerald-600" :
+                                                                    rsvp.status === 'maybe' ? "bg-amber-100 text-amber-600" :
+                                                                        "bg-slate-100 text-slate-600"
+                                                            )}>
+                                                                {rsvp.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-6 font-medium text-slate-600">{new Date(rsvp.created_at).toLocaleDateString()}</td>
+                                                        <td className="p-6 text-right">
+                                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <button
+                                                                    onClick={() => handleDeleteRSVP(rsvp.id)}
+                                                                    className="p-2 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-500 transition-colors"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {rsvps.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={5} className="p-12 text-center text-slate-400 font-medium">
+                                                            No active rosters found.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </motion.div>
+                            )
+                        }
+                    </AnimatePresence >
+                </motion.div >
+            </div >
+        </div >
     );
 }

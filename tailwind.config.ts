@@ -94,7 +94,7 @@ const config: Config = {
         },
     },
     plugins: [
-        require("tailwindcss-animate"),
+        require("tailwindcss-animate"), // eslint-disable-line @typescript-eslint/no-require-imports
         plugin(function ({ addUtilities }) {
             addUtilities({
                 ".perspective-1000": {

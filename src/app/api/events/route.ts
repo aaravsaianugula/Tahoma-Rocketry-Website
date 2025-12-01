@@ -1,15 +1,17 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     const supabase = await createClient();
 
     // Fetch future events, sorted by date
     const { data: events, error } = await supabase
         .from('events')
-        .select('*')
-        .gte('date', new Date().toISOString()) // Filter past events
-        .order('date', { ascending: true });
+        .select('*');
+    // .gte('date', new Date().toISOString()) // Filter past events
+    // .order('date', { ascending: true });
 
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -116,8 +118,8 @@ export async function PUT(request: Request) {
                 description: body.description,
                 location: body.location,
                 type: body.type,
-                shortDescription: body.shortDescription,
-                longDescription: body.longDescription
+                short_description: body.shortDescription,
+                long_description: body.longDescription
             })
             .eq('id', body.id)
             .select()

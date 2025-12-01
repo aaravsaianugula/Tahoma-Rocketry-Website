@@ -85,10 +85,12 @@ function IconContainer({
             // But mouseX/Y from parent are page coordinates.
             // Let's assume the parent passes page coordinates.
             // bounds.y + window.scrollY is the page Y position.
-            const centerY = bounds.y + window.scrollY + bounds.height / 2;
+            const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+            const centerY = bounds.y + scrollY + bounds.height / 2;
             return val - centerY;
         } else {
-            const centerX = bounds.x + window.scrollX + bounds.width / 2;
+            const scrollX = typeof window !== 'undefined' ? window.scrollX : 0;
+            const centerX = bounds.x + scrollX + bounds.width / 2;
             return val - centerX;
         }
     });
