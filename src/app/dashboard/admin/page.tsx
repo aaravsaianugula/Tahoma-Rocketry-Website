@@ -63,7 +63,7 @@ export default function AdminDashboard() {
             const response = await fetch('/api/events', { cache: 'no-store' });
             if (response.ok) {
                 const data = await response.json();
-                // console.log("DEBUG: Fetched events:", data);
+
                 setEvents(data);
             }
         } catch (error) {

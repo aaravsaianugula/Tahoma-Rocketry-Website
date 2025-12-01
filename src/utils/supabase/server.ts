@@ -35,7 +35,7 @@ export async function createClient() {
             from: (table: string) => {
                 return {
                     select: (columns: string) => {
-                        // console.log(`DEBUG: Mock Client select on ${table}, store has ${mockStore[table]?.length} items`);
+
                         const queryBuilder = {
                             data: mockStore[table] || [],
                             error: null,
