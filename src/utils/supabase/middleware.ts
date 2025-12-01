@@ -48,8 +48,18 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
+    // Role-based protection
+    if (user && request.nextUrl.pathname.startsWith('/dashboard/admin')) {
+        const userRole = user.user_metadata?.role;
+        if (userRole !== 'admin') {
+            return NextResponse.redirect(new URL('/dashboard/student', request.url));
+        }
+    }
+
     if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup') && user) {
-        return NextResponse.redirect(new URL('/dashboard/student', request.url))
+        // Redirect based on role
+        const target = user.user_metadata?.role === 'admin' ? '/dashboard/admin' : '/dashboard/student';
+        return NextResponse.redirect(new URL(target, request.url))
     }
 
     return response

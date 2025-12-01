@@ -25,7 +25,7 @@ export async function createClient() {
                             user: {
                                 id: 'mock-user-id',
                                 email: 'pilot@tahomarocketry.org',
-                                user_metadata: { full_name: 'Mock Pilot' }
+                                user_metadata: { full_name: 'Mock Pilot', role: 'admin' }
                             }
                         },
                         error: null
