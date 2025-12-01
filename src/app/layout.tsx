@@ -8,6 +8,7 @@ import { CustomCursor } from "@/components/ui/custom-cursor";
 import { SoundManager } from "@/components/ui/sound-manager";
 import { GlobalDock } from "@/components/global-dock";
 import { PageTransition } from "@/components/page-transition";
+import { ToastProvider } from "@/components/ui/toast";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,14 +26,16 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <body className={`${inter.className} bg-[#020410] text-slate-100 antialiased selection:bg-[#D4AF37]/30 selection:text-[#D4AF37]`} suppressHydrationWarning>
         <SmoothScroll>
-          <CustomCursor />
-          <SoundManager />
-          <Navbar />
-          <GlobalDock />
-          <main className="min-h-screen">
-            {children}
-          </main>
-          <Footer />
+          <ToastProvider>
+            <CustomCursor />
+            <SoundManager />
+            <Navbar />
+            <GlobalDock />
+            <main className="min-h-screen">
+              {children}
+            </main>
+            <Footer />
+          </ToastProvider>
         </SmoothScroll>
       </body>
     </html>

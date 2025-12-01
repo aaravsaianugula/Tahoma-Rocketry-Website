@@ -8,9 +8,11 @@ import { MagneticButton } from "@/components/ui/magnetic-button";
 import { TextPressure } from "@/components/ui/text-pressure";
 import { Marquee } from "@/components/ui/marquee";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 
 export default function ContactPage() {
     const [submitted, setSubmitted] = useState(false);
+    const { success, error: toastError } = useToast();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,12 +37,14 @@ export default function ContactPage() {
 
             if (response.ok) {
                 setSubmitted(true);
+                success("Message transmitted successfully.");
             } else {
                 console.error('Failed to send message');
-                // Optional: Add error handling UI
+                toastError("Failed to transmit message. Please try again.");
             }
         } catch (error) {
             console.error('Error sending message:', error);
+            toastError("Transmission error. Check your connection.");
         }
     };
 

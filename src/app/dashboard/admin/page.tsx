@@ -9,6 +9,7 @@ import { FadeIn, ShinyText } from "@/components/ui/text-animations";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "@/components/ui/toast";
 
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState<"overview" | "events" | "gallery" | "rsvps">("overview");
@@ -17,7 +18,9 @@ export default function AdminDashboard() {
     const [rsvps, setRsvps] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+
     const supabase = createClient();
+    const { success, error: toastError } = useToast();
 
     // Event State
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -115,8 +118,15 @@ export default function AdminDashboard() {
     }, [activeTab]);
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
-        router.push("/login");
+        try {
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+            success("Logged out successfully");
+            router.push("/login");
+        } catch (error: any) {
+            console.error("Logout failed:", error);
+            toastError("Failed to logout: " + error.message);
+        }
     };
 
     // Event Handlers
@@ -135,7 +145,7 @@ export default function AdminDashboard() {
 
                 // Validation: Ensure end date is after start date
                 if (endDate <= currentDate) {
-                    alert("End date must be after the start date.");
+                    toastError("End date must be after the start date.");
                     return;
                 }
 
@@ -204,15 +214,16 @@ export default function AdminDashboard() {
                 setIsRecurring(false);
                 setRecurrenceEndDate("");
                 setSelectedDays([]);
-                alert("Event created successfully!");
+
+                success("Event created successfully!");
                 fetchEvents();
             } else {
                 const errorData = await response.json();
-                alert(`Failed to create event: ${errorData.error}`);
+                toastError(`Failed to create event: ${errorData.error}`);
             }
         } catch (error) {
             console.error('Failed to create event:', error);
-            alert('An unexpected error occurred.');
+            toastError('An unexpected error occurred.');
         }
     };
 
@@ -257,7 +268,7 @@ export default function AdminDashboard() {
         if (file) {
             // Check file size (limit to 5MB initially, but we will compress)
             if (file.size > 5 * 1024 * 1024) {
-                alert("File is too large. Please choose an image under 5MB.");
+                toastError("File is too large. Please choose an image under 5MB.");
                 return;
             }
 
@@ -317,15 +328,16 @@ export default function AdminDashboard() {
                     url: "",
                     date: ""
                 });
-                alert("Asset uploaded successfully!");
+
+                success("Asset uploaded successfully!");
                 fetchGallery();
             } else {
                 const data = await response.json();
-                alert(`Failed to upload asset: ${data.error || 'Unknown error'}`);
+                toastError(`Failed to upload asset: ${data.error || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Failed to add media:', error);
-            alert("An unexpected error occurred during upload.");
+            toastError("An unexpected error occurred during upload.");
         }
     };
 

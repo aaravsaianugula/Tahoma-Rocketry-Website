@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Calendar, Clock, MapPin, Rocket, Terminal, Activity, Radio, Ticket } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/toast";
 
 export default function EventsPage() {
     const [filter, setFilter] = useState<"all" | "launch" | "fundraiser" | "meeting">("all");
@@ -15,7 +16,9 @@ export default function EventsPage() {
     const [user, setUser] = useState<any>(null);
     const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
     const supabase = createClient();
+
     const router = useRouter();
+    const { toast, success, error: toastError } = useToast();
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -58,19 +61,20 @@ export default function EventsPage() {
             });
 
             if (response.ok) {
-                alert("RSVP Confirmed! We'll see you there.");
+                success("RSVP Confirmed! We'll see you there.");
                 // Optionally refresh rsvp status or events
             } else {
                 const data = await response.json();
+                console.error("RSVP Failed:", data);
                 if (data.error === "You have already RSVP'd to this event") {
-                    alert("You have already RSVP'd to this event.");
+                    toastError("You have already RSVP'd to this event.");
                 } else {
-                    alert("Failed to RSVP. Please try again.");
+                    toastError(`Failed to RSVP: ${data.error || "Unknown error"}`);
                 }
             }
         } catch (error) {
             console.error("RSVP Error:", error);
-            alert("An error occurred.");
+            toastError("An error occurred while processing your RSVP.");
         } finally {
             setRsvpLoading(null);
         }
