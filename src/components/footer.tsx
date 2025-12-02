@@ -49,7 +49,7 @@ export function Footer() {
                         <span className="text-sm font-bold uppercase tracking-[0.3em] mx-8 text-amber-400">//</span>
                         <span className="text-sm font-bold uppercase tracking-[0.3em] mx-8">Tahoma Rocketry Club</span>
                         <span className="text-sm font-bold uppercase tracking-[0.3em] mx-8 text-amber-400">//</span>
-                        <span className="text-sm font-bold uppercase tracking-[0.3em] mx-8">Est. 2024</span>
+                        <span className="text-sm font-bold uppercase tracking-[0.3em] mx-8">Est. 2023</span>
                         <span className="text-sm font-bold uppercase tracking-[0.3em] mx-8 text-amber-400">//</span>
                     </Marquee>
                 </div>
