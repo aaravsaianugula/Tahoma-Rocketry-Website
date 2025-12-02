@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 
 // Pro Radical Transitions (Enter-Only for Speed & Robustness)
-const TRANSITIONS = ["luminous", "gridlock", "supersonic", "geometric"];
+const TRANSITIONS = ["pixel-shutter", "curtain-wipe", "luminous", "gridlock", "supersonic", "geometric"];
 
 export function PageTransition({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const [isVisible, setIsVisible] = useState(false);
-    const [currentTransition, setCurrentTransition] = useState("luminous");
+    const [currentTransition, setCurrentTransition] = useState("pixel-shutter");
 
     useEffect(() => {
         // Immediate scroll reset
@@ -28,7 +28,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
         // Reduced to 600ms for snappier feel
         const timer = setTimeout(() => {
             setIsVisible(false);
-        }, 600);
+        }, 800); // Slightly longer for complex animations
 
         return () => clearTimeout(timer);
     }, [pathname]);
@@ -54,6 +54,8 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
 
 function TransitionSelector({ variant }: { variant: string }) {
     switch (variant) {
+        case "pixel-shutter": return <PixelShutterTransition />;
+        case "curtain-wipe": return <CurtainWipeTransition />;
         case "luminous": return <LuminousTransition />;
         case "gridlock": return <GridlockTransition />;
         case "supersonic": return <SupersonicTransition />;
@@ -63,10 +65,46 @@ function TransitionSelector({ variant }: { variant: string }) {
 }
 
 // --- Pro Enter-Only Transition Components ---
-// All transitions MUST:
-// 1. Start Opaque (Cover the screen)
-// 2. Animate to Transparent/Hidden
-// 3. Be pointer-events-none (handled by container)
+
+function PixelShutterTransition() {
+    const blocks = Array.from({ length: 100 }); // 10x10 grid
+    return (
+        <div className="absolute inset-0 flex flex-wrap">
+            {blocks.map((_, i) => (
+                <motion.div
+                    key={i}
+                    initial={{ opacity: 1, scale: 1 }}
+                    animate={{ opacity: 0, scale: 0 }}
+                    transition={{
+                        duration: 0.5,
+                        delay: Math.random() * 0.3,
+                        ease: "easeIn"
+                    }}
+                    className="w-[10vw] h-[10vh] bg-slate-900 border-[0.5px] border-slate-800"
+                />
+            ))}
+        </div>
+    );
+}
+
+function CurtainWipeTransition() {
+    return (
+        <div className="absolute inset-0 flex">
+            <motion.div
+                initial={{ scaleX: 1 }}
+                animate={{ scaleX: 0 }}
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                className="w-1/2 h-full bg-rose-500 origin-left"
+            />
+            <motion.div
+                initial={{ scaleX: 1 }}
+                animate={{ scaleX: 0 }}
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                className="w-1/2 h-full bg-amber-400 origin-right"
+            />
+        </div>
+    );
+}
 
 function LuminousTransition() {
     return (
