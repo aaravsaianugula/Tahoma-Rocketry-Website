@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useRef, MouseEvent } from "react";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import React, { useState, useRef, useEffect } from "react";
+import { motion, useScroll, useTransform, useSpring, useInView } from "framer-motion";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -19,67 +19,30 @@ interface HoverRevealProps {
 
 export function HoverReveal({ items, className }: HoverRevealProps) {
     const [activeImage, setActiveImage] = useState<string | null>(null);
-    const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
-    const x = useMotionValue(0);
-    const y = useMotionValue(0);
-
-    const springConfig = { stiffness: 100, damping: 15 };
-    const xSpring = useSpring(x, springConfig);
-    const ySpring = useSpring(y, springConfig);
-
-    const handleMouseMove = (e: MouseEvent) => {
-        x.set(e.clientX);
-        y.set(e.clientY);
-    };
+    const containerRef = useRef<HTMLDivElement>(null);
 
     return (
-        <div
-            className={cn("relative w-full", className)}
-            onMouseMove={handleMouseMove}
-        >
-            {/* List Items */}
+        <div ref={containerRef} className={cn("relative w-full", className)}>
             <div className="flex flex-col">
-                {items.map((item, index) => (
-                    <div
+                {items.map((item) => (
+                    <RevealItem
                         key={item.id}
-                        className="group relative flex items-center justify-between py-8 border-b-2 border-slate-900 cursor-none hover:bg-slate-900 hover:text-white transition-colors px-4"
-                        onMouseEnter={() => {
-                            setActiveImage(item.imageUrl);
-                            setActiveIndex(index);
-                        }}
-                        onMouseLeave={() => {
-                            setActiveImage(null);
-                            setActiveIndex(null);
-                        }}
-                    >
-                        <span className="text-4xl md:text-6xl font-black uppercase tracking-tighter z-10 relative">
-                            {item.title}
-                        </span>
-                        <span className="text-xl font-mono z-10 relative">
-                            {item.subtitle}
-                        </span>
-                    </div>
+                        item={item}
+                        onInView={(imageUrl) => setActiveImage(imageUrl)}
+                    />
                 ))}
             </div>
 
-            {/* Floating Image */}
+            {/* Fixed Image Display */}
             <motion.div
-                style={{
-                    x: xSpring,
-                    y: ySpring,
-                    top: 0,
-                    left: 0,
-                    translateX: "-50%",
-                    translateY: "-50%",
-                }}
-                className="fixed pointer-events-none z-50 w-[300px] h-[400px] overflow-hidden border-4 border-slate-900 bg-white shadow-[8px_8px_0px_0px_rgba(30,41,59,1)] hidden md:block"
-                initial={{ opacity: 0, scale: 0.5 }}
+                className="fixed top-1/2 right-[10%] -translate-y-1/2 z-50 w-[300px] h-[400px] overflow-hidden border-4 border-slate-900 bg-white shadow-[8px_8px_0px_0px_rgba(30,41,59,1)] hidden lg:block pointer-events-none"
+                initial={{ opacity: 0, scale: 0.8 }}
                 animate={{
                     opacity: activeImage ? 1 : 0,
-                    scale: activeImage ? 1 : 0.5,
-                    rotate: activeIndex !== null ? (activeIndex % 2 === 0 ? 5 : -5) : 0
+                    scale: activeImage ? 1 : 0.8,
+                    rotate: activeImage ? 5 : 0
                 }}
+                transition={{ duration: 0.3 }}
             >
                 {activeImage && (
                     <Image
@@ -91,5 +54,33 @@ export function HoverReveal({ items, className }: HoverRevealProps) {
                 )}
             </motion.div>
         </div>
+    );
+}
+
+function RevealItem({ item, onInView }: { item: HoverRevealItem, onInView: (url: string) => void }) {
+    const ref = useRef(null);
+    const isInView = useInView(ref, { margin: "-50% 0px -50% 0px" });
+
+    useEffect(() => {
+        if (isInView) {
+            onInView(item.imageUrl);
+        }
+    }, [isInView, item.imageUrl, onInView]);
+
+    return (
+        <motion.div
+            ref={ref}
+            className={cn(
+                "group relative flex items-center justify-between py-12 border-b-2 border-slate-900 transition-colors px-4",
+                isInView ? "bg-slate-900 text-white" : "text-slate-900"
+            )}
+        >
+            <span className="text-4xl md:text-6xl font-black uppercase tracking-tighter z-10 relative">
+                {item.title}
+            </span>
+            <span className="text-xl font-mono z-10 relative">
+                {item.subtitle}
+            </span>
+        </motion.div>
     );
 }
