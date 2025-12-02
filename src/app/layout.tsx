@@ -4,7 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { SmoothScroll } from "@/components/ui/smooth-scroll";
-import { CustomCursor } from "@/components/ui/custom-cursor";
+// import { CustomCursor } from "@/components/ui/custom-cursor";
 import { SoundManager } from "@/components/ui/sound-manager";
 import { GlobalDock } from "@/components/global-dock";
 import { PageTransition } from "@/components/page-transition";
@@ -27,7 +27,7 @@ export default function RootLayout({
       <body className={`${inter.className} bg-[#020410] text-slate-100 antialiased selection:bg-[#D4AF37]/30 selection:text-[#D4AF37]`} suppressHydrationWarning>
         <SmoothScroll>
           <ToastProvider>
-            <CustomCursor />
+            {/* <CustomCursor /> */}
             <SoundManager />
             <Navbar />
             <GlobalDock />
