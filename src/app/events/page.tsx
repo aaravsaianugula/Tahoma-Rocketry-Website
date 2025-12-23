@@ -4,7 +4,7 @@ import { RetroGrid } from "@/components/ui/retro-grid";
 import { FadeIn } from "@/components/ui/text-animations";
 import { Marquee } from "@/components/ui/marquee";
 import { cn } from "@/lib/utils";
-import { Calendar, Clock, MapPin, Rocket, Terminal, Activity, Radio, Ticket } from "lucide-react";
+import { Calendar, Clock, MapPin, Rocket, Terminal, Activity, Radio, Ticket, Check, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
@@ -14,11 +14,32 @@ export default function EventsPage() {
     const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
+    const [userRsvps, setUserRsvps] = useState<Record<string, string>>({}); // eventId -> rsvpId
     const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
     const supabase = createClient();
 
     const router = useRouter();
     const { toast, success, error: toastError } = useToast();
+
+    const fetchUserRsvps = async () => {
+        if (!user) return;
+        try {
+            const response = await fetch('/api/rsvps');
+            if (response.ok) {
+                const data = await response.json();
+                // Map event_id to rsvp id for quick lookup - use email for matching
+                const rsvpMap: Record<string, string> = {};
+                data.forEach((rsvp: any) => {
+                    if (rsvp.email === user.email) {
+                        rsvpMap[rsvp.event_id] = rsvp.id;
+                    }
+                });
+                setUserRsvps(rsvpMap);
+            }
+        } catch (error) {
+            console.error('Failed to fetch RSVPs:', error);
+        }
+    };
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -36,13 +57,24 @@ export default function EventsPage() {
         };
 
         const fetchUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setUser(user);
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                setUser(user);
+            } catch (error) {
+                console.error('Error fetching user:', error);
+            }
         };
 
         fetchEvents();
         fetchUser();
     }, []);
+
+    // Fetch RSVPs when user is loaded
+    useEffect(() => {
+        if (user) {
+            fetchUserRsvps();
+        }
+    }, [user]);
 
     const handleRSVP = async (eventId: string) => {
         if (!user) {
@@ -51,25 +83,50 @@ export default function EventsPage() {
         }
 
         setRsvpLoading(eventId);
-        try {
-            const response = await fetch('/api/rsvps', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ event_id: eventId }),
-            });
 
-            if (response.ok) {
-                success("RSVP Confirmed! We'll see you there.");
-                // Optionally refresh rsvp status or events
-            } else {
-                const data = await response.json();
-                console.error("RSVP Failed:", data);
-                if (data.error === "You have already RSVP'd to this event") {
-                    toastError("You have already RSVP'd to this event.");
+        // Check if already RSVP'd - if so, un-RSVP
+        const existingRsvpId = userRsvps[eventId];
+
+        try {
+            if (existingRsvpId) {
+                // Un-RSVP
+                const response = await fetch(`/api/rsvps?id=${existingRsvpId}`, {
+                    method: 'DELETE',
+                });
+
+                if (response.ok) {
+                    success("RSVP cancelled.");
+                    setUserRsvps(prev => {
+                        const next = { ...prev };
+                        delete next[eventId];
+                        return next;
+                    });
                 } else {
-                    toastError(`Failed to RSVP: ${data.error || "Unknown error"}`);
+                    const data = await response.json();
+                    toastError(`Failed to cancel RSVP: ${data.error || "Unknown error"}`);
+                }
+            } else {
+                // Create RSVP
+                const response = await fetch('/api/rsvps', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ event_id: eventId }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    success("RSVP Confirmed! We'll see you there.");
+                    setUserRsvps(prev => ({ ...prev, [eventId]: data.id }));
+                } else {
+                    const data = await response.json();
+                    console.error("RSVP Failed:", data);
+                    if (data.error === "You have already RSVP'd to this event") {
+                        toastError("You have already RSVP'd to this event.");
+                    } else {
+                        toastError(`Failed to RSVP: ${data.error || "Unknown error"}`);
+                    }
                 }
             }
         } catch (error) {
@@ -94,7 +151,14 @@ export default function EventsPage() {
     const filteredEvents = uniqueEvents.filter(e => filter === "all" || e.type === filter);
 
     return (
-        <div className="min-h-screen bg-[#FDFBF7] relative overflow-hidden selection:bg-rose-200 selection:text-rose-900 font-mono">
+        <div className="min-h-screen bg-[#FDFBF7] text-slate-900 relative overflow-hidden selection:bg-rose-200 selection:text-rose-900 font-mono z-0">
+            {/* Force light theme override for this page */}
+            <style jsx global>{`
+                :root {
+                    --foreground: 15 23 42;
+                    --background: 253 251 247;
+                }
+            `}</style>
             {/* Background: Retro Flight Grid */}
             <RetroGrid className="opacity-60" />
 
@@ -204,10 +268,20 @@ export default function EventsPage() {
                                                 <button
                                                     onClick={() => handleRSVP(event.id)}
                                                     disabled={rsvpLoading === event.id}
-                                                    className="w-full mt-4 py-3 bg-slate-900 text-white font-black uppercase tracking-widest text-xs rounded-lg hover:bg-rose-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed relative z-20"
+                                                    className={cn(
+                                                        "w-full mt-4 py-3 font-black uppercase tracking-widest text-xs rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed relative z-20",
+                                                        userRsvps[event.id]
+                                                            ? "bg-emerald-500 text-white hover:bg-rose-600"
+                                                            : "bg-slate-900 text-white hover:bg-rose-600"
+                                                    )}
                                                 >
                                                     {rsvpLoading === event.id ? (
                                                         <span className="animate-pulse">Processing...</span>
+                                                    ) : userRsvps[event.id] ? (
+                                                        <>
+                                                            <Check className="w-4 h-4" />
+                                                            RSVP'd - Click to Cancel
+                                                        </>
                                                     ) : (
                                                         <>
                                                             <Ticket className="w-4 h-4" />

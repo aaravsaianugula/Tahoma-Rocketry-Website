@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useScroll, useSpring, useTransform, useVelocity } from "framer-motion";
+import { cn } from "@/lib/utils";
 import React, { useRef } from "react";
 
 interface VelocityScrollProps {
@@ -24,7 +25,7 @@ export function VelocityScroll({ children, className, skewFactor = 5 }: Velocity
     return (
         <motion.div
             ref={contentRef}
-            className={className}
+            className={cn(className, "will-change-transform")}
             style={{ skewY: skew }}
         >
             {children}

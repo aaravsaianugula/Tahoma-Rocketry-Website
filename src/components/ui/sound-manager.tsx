@@ -16,100 +16,90 @@ export const SoundManager = () => {
             if (isMuted || ctx.state === 'suspended') return;
             const t = ctx.currentTime;
 
-            // --- PRO FM SYNTHESIS: GLASS BELL ---
-            // Carrier: Main tone
-            const carrier = ctx.createOscillator();
-            const carrierGain = ctx.createGain();
+            // --- ETHEREAL CLICK: CRYSTAL DROP ---
+            // A pure, glass-like tone inspired by magical UI interactions (Frieren)
 
-            // Modulator 1: Texture
-            const mod1 = ctx.createOscillator();
-            const mod1Gain = ctx.createGain();
+            // Oscillator 1: The 'Body' (Sine for purity)
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
 
-            // Modulator 2: Metallic Ring
-            const mod2 = ctx.createOscillator();
-            const mod2Gain = ctx.createGain();
-
-            // Filter: Clean tail
-            const filter = ctx.createBiquadFilter();
+            // Oscillator 2: The 'Shimmer' (Higher harmonic)
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
 
             // Configuration
-            carrier.type = "sine";
-            carrier.frequency.setValueAtTime(800, t);
-            carrier.frequency.exponentialRampToValueAtTime(0.01, t + 0.5); // Percussive decay
+            osc1.type = "sine";
+            // Start high and drop slightly for 'impact' feel (800Hz -> 600Hz)
+            osc1.frequency.setValueAtTime(800, t);
+            osc1.frequency.exponentialRampToValueAtTime(600, t + 0.1);
 
-            mod1.type = "sine";
-            mod1.frequency.setValueAtTime(1200, t); // 1.5 ratio
-            mod1Gain.gain.setValueAtTime(400, t);
-            mod1Gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+            osc2.type = "sine";
+            // Perfect 5th harmonic for musicality
+            osc2.frequency.setValueAtTime(1200, t);
+            osc2.frequency.exponentialRampToValueAtTime(900, t + 0.1);
 
-            mod2.type = "square";
-            mod2.frequency.setValueAtTime(400, t); // 0.5 ratio
-            mod2Gain.gain.setValueAtTime(200, t);
-            mod2Gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+            // Envelopes (Percussive but soft)
+            gain1.gain.setValueAtTime(0, t);
+            gain1.gain.linearRampToValueAtTime(0.3, t + 0.01); // Soft attack
+            gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.3); // Crystal decay
 
-            // Routing: Mod2 -> Mod1 -> Carrier
-            mod2.connect(mod2Gain);
-            mod2Gain.connect(mod1.frequency);
-            mod1.connect(mod1Gain);
-            mod1Gain.connect(carrier.frequency);
+            gain2.gain.setValueAtTime(0, t);
+            gain2.gain.linearRampToValueAtTime(0.1, t + 0.01);
+            gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.15); // Faster shimmer decay
 
-            // Filter Envelope
+            // Filters for warmth
+            const filter = ctx.createBiquadFilter();
             filter.type = "lowpass";
-            filter.frequency.setValueAtTime(3000, t);
-            filter.frequency.exponentialRampToValueAtTime(100, t + 0.3);
-
-            // Amplitude Envelope
-            carrierGain.gain.setValueAtTime(0.4, t);
-            carrierGain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+            filter.frequency.setValueAtTime(2000, t);
 
             // Connections
-            carrier.connect(filter);
-            filter.connect(carrierGain);
-            carrierGain.connect(ctx.destination);
+            osc1.connect(gain1);
+            osc2.connect(gain2);
+            gain1.connect(filter);
+            gain2.connect(filter);
+            filter.connect(ctx.destination);
 
-            // Start/Stop
-            carrier.start(t);
-            mod1.start(t);
-            mod2.start(t);
-            carrier.stop(t + 0.5);
-            mod1.stop(t + 0.5);
-            mod2.stop(t + 0.5);
+            // Play
+            osc1.start(t);
+            osc2.start(t);
+            osc1.stop(t + 0.3);
+            osc2.stop(t + 0.3);
         };
 
         const playHover = () => {
             if (isMuted || ctx.state === 'suspended') return;
             const t = ctx.currentTime;
 
-            // --- PRO SUBTRACTIVE: AERO SWISH ---
+            // --- MAGICAL WHISPER: AIRY RESONANCE ---
+            // A very subtle high-frequency swell, like calm wind or magic detection
+
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
-            const filter = ctx.createBiquadFilter();
             const panner = ctx.createStereoPanner();
 
-            osc.type = "sawtooth";
-            osc.frequency.setValueAtTime(100, t); // Low rumble base
+            osc.type = "triangle"; // Slightly richer than sine, but soft
+            osc.frequency.setValueAtTime(1200, t);
 
-            // Filter Sweep (High Pass for "Air")
-            filter.type = "highpass";
-            filter.frequency.setValueAtTime(800, t);
-            filter.frequency.exponentialRampToValueAtTime(4000, t + 0.1);
+            // Subtle pitch drift for 'organic' feel
+            osc.frequency.linearRampToValueAtTime(1250, t + 0.1);
 
-            // Panning sweep
-            panner.pan.setValueAtTime(-0.3, t);
-            panner.pan.linearRampToValueAtTime(0.3, t + 0.1);
+            // Panning for movement (Left -> Center -> Right)
+            // Randomize start pan slightly
+            const startPan = Math.random() * 0.4 - 0.2;
+            panner.pan.setValueAtTime(startPan, t);
+            panner.pan.linearRampToValueAtTime(0, t + 0.1);
 
-            // Envelope
+            // Soft Envelope
             gain.gain.setValueAtTime(0, t);
-            gain.gain.linearRampToValueAtTime(0.05, t + 0.02);
+            gain.gain.linearRampToValueAtTime(0.05, t + 0.02); // Very quiet
             gain.gain.linearRampToValueAtTime(0, t + 0.1);
 
-            osc.connect(filter);
-            filter.connect(panner);
+            osc.connect(panner);
             panner.connect(gain);
             gain.connect(ctx.destination);
 
             osc.start(t);
-            osc.stop(t + 0.1);
+            osc.stop(t + 0.2);
         };
 
         const handleClick = (e: MouseEvent) => {
@@ -138,12 +128,12 @@ export const SoundManager = () => {
     return (
         <button
             onClick={() => setIsMuted(!isMuted)}
-            className="fixed bottom-8 right-8 z-50 p-4 rounded-full bg-white/5 border border-white/10 backdrop-blur-3xl hover:bg-white/10 transition-all duration-500 group shadow-2xl hover:scale-110"
+            className="fixed bottom-8 right-8 z-50 p-4 rounded-full bg-white shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] border-2 border-slate-900 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-300 group"
         >
             {isMuted ? (
-                <VolumeX className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+                <VolumeX className="w-5 h-5 text-slate-400 group-hover:text-rose-500 transition-colors" />
             ) : (
-                <Volume2 className="w-5 h-5 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
+                <Volume2 className="w-5 h-5 text-slate-900 group-hover:text-rose-600 transition-colors" />
             )}
         </button>
     );

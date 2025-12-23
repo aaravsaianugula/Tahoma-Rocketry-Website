@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { SpotlightCard } from "@/components/ui/cards";
-import { Calendar, Edit, Trash2, Plus, Users, Rocket, BarChart3, Image as ImageIcon, LogOut, Search, Filter, ChevronRight, LayoutDashboard } from "lucide-react";
+import { Calendar, Edit, Trash2, Plus, Users, Rocket, BarChart3, Image as ImageIcon, LogOut, Search, Filter, ChevronRight, LayoutDashboard, Loader2, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TextPressure } from "@/components/ui/text-pressure";
 // import { MagneticButton } from "@/components/ui/magnetic-button";
@@ -17,10 +17,37 @@ export default function AdminDashboard() {
     const [galleryItems, setGalleryItems] = useState<any[]>([]);
     const [rsvps, setRsvps] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [authLoading, setAuthLoading] = useState(true);
+    const [user, setUser] = useState<any>(null);
     const router = useRouter();
 
     const supabase = createClient();
     const { success, error: toastError } = useToast();
+
+    // Auth check - verify user is admin
+    useEffect(() => {
+        const checkAuth = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                router.push('/login');
+                return;
+            }
+
+            // Check if user is admin (customize this based on your admin criteria)
+            const isAdmin = user.email === 'aaravsai.anugula@gmail.com' ||
+                user.user_metadata?.role === 'admin';
+
+            if (!isAdmin) {
+                // Non-admin users get redirected to regular dashboard
+                router.push('/dashboard');
+                return;
+            }
+
+            setUser(user);
+            setAuthLoading(false);
+        };
+        checkAuth();
+    }, []);
 
     // Event State
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -106,7 +133,7 @@ export default function AdminDashboard() {
 
     // Fetch data based on active tab
     useEffect(() => {
-        if (activeTab === 'events' || activeTab === 'overview') {
+        if (activeTab === 'events' || activeTab === 'overview' || activeTab === 'rsvps') {
             fetchEvents();
         }
         if (activeTab === 'gallery' || activeTab === 'overview') {
@@ -263,59 +290,106 @@ export default function AdminDashboard() {
     };
 
     // Gallery Handlers
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const [uploadLoading, setUploadLoading] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Check file size (limit to 5MB initially, but we will compress)
-            if (file.size > 5 * 1024 * 1024) {
-                toastError("File is too large. Please choose an image under 5MB.");
+            // Validate file type
+            const isVideo = file.type.startsWith('video/');
+            const isImage = file.type.startsWith('image/');
+
+            if (!isVideo && !isImage) {
+                toastError("Please select an image or video file.");
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onloadend = (event) => {
-                const img = new Image();
-                img.src = event.target?.result as string;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800;
-                    const MAX_HEIGHT = 800;
-                    let width = img.width;
-                    let height = img.height;
+            // Check file size (10MB for images, 100MB for videos)
+            const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                toastError(`File is too large. Max size: ${maxSize / 1024 / 1024}MB`);
+                return;
+            }
 
-                    if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-                    } else {
-                        if (height > MAX_HEIGHT) {
-                            width *= MAX_HEIGHT / height;
-                            height = MAX_HEIGHT;
-                        }
-                    }
+            setSelectedFile(file);
+            setNewMedia(prev => ({
+                ...prev,
+                type: isVideo ? 'video' : 'image',
+                url: '' // Will be set after upload
+            }));
 
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx?.drawImage(img, 0, 0, width, height);
-
-                    // Compress to JPEG with 0.7 quality
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    setNewMedia(prev => ({ ...prev, url: dataUrl }));
+            // Show preview for images
+            if (isImage) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setNewMedia(prev => ({ ...prev, url: reader.result as string }));
                 };
-            };
-            reader.readAsDataURL(file);
+                reader.readAsDataURL(file);
+            }
+        }
+    };
+
+    const uploadFileToStorage = async (file: File): Promise<string | null> => {
+        setUploadLoading(true);
+        try {
+            // Upload directly to Supabase from client side
+            const isVideo = file.type.startsWith('video/');
+            const ext = file.name.split('.').pop() || 'jpg';
+            const filename = `${isVideo ? 'videos' : 'images'}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+
+            const { data, error } = await supabase.storage
+                .from('gallery')
+                .upload(filename, file, {
+                    contentType: file.type,
+                    cacheControl: '3600',
+                    upsert: true
+                });
+
+            if (error) {
+                console.error('Storage upload error:', error);
+                toastError(`Upload failed: ${error.message}`);
+                return null;
+            }
+
+            // Get public URL
+            const { data: urlData } = supabase.storage
+                .from('gallery')
+                .getPublicUrl(filename);
+
+            return urlData.publicUrl;
+        } catch (error: any) {
+            console.error('Upload error:', error);
+            toastError(`Failed to upload file: ${error.message}`);
+            return null;
+        } finally {
+            setUploadLoading(false);
         }
     };
 
     const handleAddMedia = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            let mediaUrl = newMedia.url;
+
+            // If we have a selected file, upload it first
+            if (selectedFile) {
+                const uploadedUrl = await uploadFileToStorage(selectedFile);
+                if (!uploadedUrl) {
+                    return; // Upload failed, error already shown
+                }
+                mediaUrl = uploadedUrl;
+            }
+
+            if (!mediaUrl) {
+                toastError("Please select a file or provide a URL.");
+                return;
+            }
+
             const response = await fetch('/api/gallery', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newMedia),
+                body: JSON.stringify({ ...newMedia, url: mediaUrl }),
             });
 
             if (response.ok) {
@@ -328,6 +402,7 @@ export default function AdminDashboard() {
                     url: "",
                     date: ""
                 });
+                setSelectedFile(null);
 
                 success("Asset uploaded successfully!");
                 fetchGallery();
@@ -393,6 +468,18 @@ export default function AdminDashboard() {
 
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+    // Show loading while checking auth
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="w-12 h-12 animate-spin text-slate-900 mx-auto mb-4" />
+                    <p className="text-slate-500 font-medium">Loading Command Center...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col md:flex-row min-h-screen relative">
             {/* Flash In Transition */}
@@ -409,7 +496,7 @@ export default function AdminDashboard() {
                     width: isSidebarCollapsed ? "80px" : "288px"
                 }}
                 transition={{ duration: 0.5, type: "spring", bounce: 0.1 }}
-                className="bg-white/40 backdrop-blur-xl border-r border-white/50 flex flex-col justify-between relative z-20 h-screen sticky top-0 overflow-hidden"
+                className="bg-white/60 backdrop-blur-xl border-r-2 border-slate-900/10 flex flex-col justify-between relative z-20 h-screen sticky top-0 overflow-hidden"
             >
                 <div className={cn("transition-all duration-300", isSidebarCollapsed ? "p-4" : "p-6")}>
                     <div className={cn("flex items-center mb-12 overflow-hidden transition-all duration-300", isSidebarCollapsed ? "justify-center gap-0" : "gap-3")}>
@@ -420,7 +507,7 @@ export default function AdminDashboard() {
                             animate={{ opacity: isSidebarCollapsed ? 0 : 1, width: isSidebarCollapsed ? 0 : "auto" }}
                             className="whitespace-nowrap overflow-hidden"
                         >
-                            <h1 className="font-black text-slate-900 uppercase tracking-tighter text-xl leading-none ml-3">Command<br />Center</h1>
+                            <h1 className="font-black text-slate-900 dark:text-white uppercase tracking-tighter text-xl leading-none ml-3">Command<br />Center</h1>
                         </motion.div>
                     </div>
 
@@ -430,20 +517,21 @@ export default function AdminDashboard() {
                             { id: "events", label: "Events", icon: Calendar },
                             { id: "gallery", label: "Gallery", icon: ImageIcon },
                             { id: "rsvps", label: "RSVPs", icon: Users },
+                            { id: "settings", label: "Settings", icon: Settings, path: "/settings" },
                         ].map((item) => (
                             <button
                                 key={item.id}
-                                onClick={() => setActiveTab(item.id as any)}
+                                onClick={() => item.path ? router.push(item.path) : setActiveTab(item.id as any)}
                                 className={cn(
-                                    "w-full flex items-center rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300 group relative overflow-hidden",
+                                    "w-full flex items-center rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300 group relative overflow-hidden border-2 border-transparent",
                                     isSidebarCollapsed ? "justify-center px-2 py-4 gap-0" : "px-4 py-4 gap-4",
                                     activeTab === item.id
-                                        ? "bg-slate-900 text-white shadow-lg"
-                                        : "text-slate-500 hover:bg-white/50 hover:text-slate-900"
+                                        ? "bg-slate-900 text-white shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] border-slate-900"
+                                        : "text-slate-500 hover:bg-white hover:border-slate-200 hover:text-slate-900 hover:shadow-sm"
                                 )}
                                 title={isSidebarCollapsed ? item.label : undefined}
                             >
-                                <item.icon className={cn("w-5 h-5 shrink-0 transition-colors", activeTab === item.id ? "text-white" : "text-slate-400 group-hover:text-slate-900")} />
+                                <item.icon className={cn("w-5 h-5 shrink-0 transition-colors", activeTab === item.id ? "text-white" : "text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white")} />
                                 <motion.span
                                     animate={{ opacity: isSidebarCollapsed ? 0 : 1, width: isSidebarCollapsed ? 0 : "auto" }}
                                     className="relative z-10 whitespace-nowrap overflow-hidden"
@@ -494,7 +582,9 @@ export default function AdminDashboard() {
                 >
                     <header className="mb-12 flex justify-between items-end">
                         <div>
-                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Welcome back, Pilot</p>
+                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                Welcome back, {user?.user_metadata?.full_name?.split(' ')[0] || user?.user_metadata?.displayName || 'Pilot'}
+                            </p>
                             <div className="h-16 relative">
                                 <TextPressure
                                     text={activeTab}
@@ -527,40 +617,40 @@ export default function AdminDashboard() {
                                 className="space-y-8"
                             >
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    <SpotlightCard className="bg-white/50 border-white/60">
+                                    <SpotlightCard className="bg-white/60 backdrop-blur-xl border-2 border-slate-200 shadow-sm hover:border-slate-900 transition-colors">
                                         <div className="p-6">
-                                            <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/20">
-                                                <Rocket className="w-6 h-6 text-cyan-400" />
+                                            <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4 shadow-[4px_4px_0px_0px_rgba(251,191,36,1)]">
+                                                <Rocket className="w-6 h-6 text-amber-400" />
                                             </div>
                                             <h3 className="text-3xl font-black text-slate-900 mb-1">{events.length}</h3>
                                             <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Active Missions</p>
                                         </div>
                                     </SpotlightCard>
-                                    <SpotlightCard className="bg-white/50 border-white/60">
+                                    <SpotlightCard className="bg-white/60 backdrop-blur-xl border-2 border-slate-200 shadow-sm hover:border-slate-900 transition-colors">
                                         <div className="p-6">
-                                            <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/20">
-                                                <ImageIcon className="w-6 h-6 text-cyan-400" />
+                                            <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4 shadow-[4px_4px_0px_0px_rgba(251,191,36,1)]">
+                                                <ImageIcon className="w-6 h-6 text-amber-400" />
                                             </div>
                                             <h3 className="text-3xl font-black text-slate-900 mb-1">{galleryItems.length}</h3>
                                             <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Visual Assets</p>
                                         </div>
                                     </SpotlightCard>
-                                    <SpotlightCard className="bg-white/50 border-white/60">
+                                    <SpotlightCard className="bg-white/60 backdrop-blur-xl border-2 border-slate-200 shadow-sm hover:border-slate-900 transition-colors">
                                         <div className="p-6">
-                                            <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/20">
-                                                <Users className="w-6 h-6 text-cyan-400" />
+                                            <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4 shadow-[4px_4px_0px_0px_rgba(251,191,36,1)]">
+                                                <Users className="w-6 h-6 text-amber-400" />
                                             </div>
                                             <h3 className="text-3xl font-black text-slate-900 mb-1">{rsvps.length}</h3>
                                             <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Squadron Pilots</p>
                                         </div>
                                     </SpotlightCard>
-                                    <SpotlightCard className="bg-white/50 border-white/60">
+                                    <SpotlightCard className="bg-white/50 dark:bg-black/40 border-white/60 dark:border-white/10">
                                         <div className="p-6">
                                             <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/20">
                                                 <BarChart3 className="w-6 h-6 text-cyan-400" />
                                             </div>
-                                            <h3 className="text-3xl font-black text-slate-900 mb-1">100%</h3>
-                                            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">System Status</p>
+                                            <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-1">100%</h3>
+                                            <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">System Status</p>
                                         </div>
                                     </SpotlightCard>
                                 </div>
@@ -590,8 +680,8 @@ export default function AdminDashboard() {
                                         animate={{ opacity: 1, scale: 1 }}
                                         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
                                     >
-                                        <div className="bg-white/90 backdrop-blur-2xl border border-white/60 p-8 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                                            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-6">New Mission Parameters</h3>
+                                        <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border border-white/60 dark:border-white/10 p-8 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                                            <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-6">New Mission Parameters</h3>
                                             <form onSubmit={handleCreateEvent} className="space-y-6">
                                                 <div className="grid grid-cols-2 gap-6">
                                                     <input
@@ -889,13 +979,13 @@ export default function AdminDashboard() {
                                                     <input
                                                         type="text"
                                                         placeholder="Asset Title"
-                                                        className="bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors"
+                                                        className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-slate-900 dark:focus:border-white rounded-xl p-4 font-bold text-slate-900 dark:text-white outline-none transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                                         value={newMedia.title}
                                                         onChange={e => setNewMedia({ ...newMedia, title: e.target.value })}
                                                         required
                                                     />
                                                     <select
-                                                        className="bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors"
+                                                        className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-slate-900 dark:focus:border-white rounded-xl p-4 font-bold text-slate-900 dark:text-white outline-none transition-colors"
                                                         value={newMedia.type}
                                                         onChange={e => setNewMedia({ ...newMedia, type: e.target.value })}
                                                     >
@@ -903,39 +993,44 @@ export default function AdminDashboard() {
                                                         <option value="video">Video</option>
                                                     </select>
                                                     <div className="col-span-2 space-y-2">
-                                                        <label className="block text-xs font-bold text-slate-500 uppercase">Upload File</label>
+                                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Upload File</label>
                                                         <input
                                                             type="file"
                                                             accept="image/*,video/*"
-                                                            onChange={handleFileChange}
-                                                            className="w-full bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-cyan-500"
+                                                            onChange={handleFileSelect}
+                                                            disabled={uploadLoading}
+                                                            className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-slate-900 dark:focus:border-white rounded-xl p-4 font-bold text-slate-900 dark:text-white outline-none transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-900 dark:file:bg-white file:text-white dark:file:text-slate-900 hover:file:bg-cyan-500 disabled:opacity-50"
                                                         />
+                                                        {selectedFile && (
+                                                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                                                ✓ Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)}MB)
+                                                            </p>
+                                                        )}
                                                     </div>
                                                     <input
                                                         type="text"
-                                                        placeholder="Asset URL (e.g. /assets/...)"
-                                                        className="bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors col-span-2"
+                                                        placeholder="Or paste URL directly..."
+                                                        className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-slate-900 dark:focus:border-white rounded-xl p-4 font-bold text-slate-900 dark:text-white outline-none transition-colors col-span-2 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                                         value={newMedia.url}
                                                         onChange={e => setNewMedia({ ...newMedia, url: e.target.value })}
-                                                        required
                                                     />
                                                     <input
                                                         type="text"
                                                         placeholder="Category (e.g. Launch, Build)"
-                                                        className="bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors"
+                                                        className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-slate-900 dark:focus:border-white rounded-xl p-4 font-bold text-slate-900 dark:text-white outline-none transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                                         value={newMedia.category}
                                                         onChange={e => setNewMedia({ ...newMedia, category: e.target.value })}
                                                     />
                                                     <input
                                                         type="date"
-                                                        className="bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors"
+                                                        className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-slate-900 dark:focus:border-white rounded-xl p-4 font-bold text-slate-900 dark:text-white outline-none transition-colors"
                                                         value={newMedia.date}
                                                         onChange={e => setNewMedia({ ...newMedia, date: e.target.value })}
                                                     />
                                                 </div>
                                                 <textarea
                                                     placeholder="Asset Description"
-                                                    className="w-full bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors h-32"
+                                                    className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-slate-900 dark:focus:border-white rounded-xl p-4 font-bold text-slate-900 dark:text-white outline-none transition-colors h-32 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                                     value={newMedia.description}
                                                     onChange={e => setNewMedia({ ...newMedia, description: e.target.value })}
                                                 />
@@ -949,9 +1044,17 @@ export default function AdminDashboard() {
                                                     </button>
                                                     <button
                                                         type="submit"
-                                                        className="px-6 py-3 rounded-xl bg-slate-900 text-white font-bold uppercase tracking-wider hover:bg-cyan-500 transition-colors shadow-lg"
+                                                        disabled={uploadLoading}
+                                                        className="px-6 py-3 rounded-xl bg-slate-900 text-white font-bold uppercase tracking-wider hover:bg-cyan-500 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                                     >
-                                                        Upload
+                                                        {uploadLoading ? (
+                                                            <>
+                                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                                Uploading...
+                                                            </>
+                                                        ) : (
+                                                            'Upload'
+                                                        )}
                                                     </button>
                                                 </div>
                                             </form>
@@ -972,13 +1075,13 @@ export default function AdminDashboard() {
                                                     <input
                                                         type="text"
                                                         placeholder="Asset Title"
-                                                        className="bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors"
+                                                        className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-slate-900 dark:focus:border-white rounded-xl p-4 font-bold text-slate-900 dark:text-white outline-none transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                                         value={editingMedia.title}
                                                         onChange={e => setEditingMedia({ ...editingMedia, title: e.target.value })}
                                                         required
                                                     />
                                                     <select
-                                                        className="bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors"
+                                                        className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-slate-900 dark:focus:border-white rounded-xl p-4 font-bold text-slate-900 dark:text-white outline-none transition-colors"
                                                         value={editingMedia.type}
                                                         onChange={e => setEditingMedia({ ...editingMedia, type: e.target.value })}
                                                     >
@@ -988,7 +1091,7 @@ export default function AdminDashboard() {
                                                     <input
                                                         type="text"
                                                         placeholder="Asset URL (e.g. /assets/...)"
-                                                        className="bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors col-span-2"
+                                                        className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-slate-900 dark:focus:border-white rounded-xl p-4 font-bold text-slate-900 dark:text-white outline-none transition-colors col-span-2 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                                         value={editingMedia.url}
                                                         onChange={e => setEditingMedia({ ...editingMedia, url: e.target.value })}
                                                         required
@@ -996,20 +1099,20 @@ export default function AdminDashboard() {
                                                     <input
                                                         type="text"
                                                         placeholder="Category (e.g. Launch, Build)"
-                                                        className="bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors"
+                                                        className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-slate-900 dark:focus:border-white rounded-xl p-4 font-bold text-slate-900 dark:text-white outline-none transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                                         value={editingMedia.category}
                                                         onChange={e => setEditingMedia({ ...editingMedia, category: e.target.value })}
                                                     />
                                                     <input
                                                         type="date"
-                                                        className="bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors"
+                                                        className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-slate-900 dark:focus:border-white rounded-xl p-4 font-bold text-slate-900 dark:text-white outline-none transition-colors"
                                                         value={editingMedia.date ? editingMedia.date.split('T')[0] : ''}
                                                         onChange={e => setEditingMedia({ ...editingMedia, date: e.target.value })}
                                                     />
                                                 </div>
                                                 <textarea
                                                     placeholder="Asset Description"
-                                                    className="w-full bg-slate-50 border-2 border-slate-200 focus:border-slate-900 rounded-xl p-4 font-bold text-slate-900 outline-none transition-colors h-32"
+                                                    className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-slate-900 dark:focus:border-white rounded-xl p-4 font-bold text-slate-900 dark:text-white outline-none transition-colors h-32 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                                     value={editingMedia.description}
                                                     onChange={e => setEditingMedia({ ...editingMedia, description: e.target.value })}
                                                 />
@@ -1068,6 +1171,17 @@ export default function AdminDashboard() {
                                             </div>
                                         </div>
                                     ))}
+                                    {galleryItems.length === 0 && (
+                                        <div className="col-span-full py-12 text-center bg-white/40 backdrop-blur-sm rounded-3xl border border-white/40">
+                                            <div className="w-16 h-16 bg-slate-100 text-slate-300 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                                <ImageIcon className="w-8 h-8" />
+                                            </div>
+                                            <h3 className="text-slate-900 font-bold uppercase tracking-wider mb-2">No Visual Records</h3>
+                                            <p className="text-slate-500 text-sm max-w-sm mx-auto">
+                                                The gallery is currently empty. Upload images or videos to document mission progress.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </motion.div>
                         )
@@ -1097,18 +1211,16 @@ export default function AdminDashboard() {
                                                 {rsvps.map((rsvp) => (
                                                     <tr key={rsvp.id} className="hover:bg-white/50 transition-colors group">
                                                         <td className="p-6">
-                                                            <div className="font-bold text-slate-900">{rsvp.user_name || 'Unknown Pilot'}</div>
-                                                            <div className="text-xs text-slate-400 font-medium">{rsvp.user_email}</div>
+                                                            <div className="font-bold text-slate-900">{rsvp.name || 'Unknown Pilot'}</div>
+                                                            <div className="text-xs text-slate-400 font-medium">{rsvp.email}</div>
                                                         </td>
-                                                        <td className="p-6 font-medium text-slate-600">{rsvp.events?.title || 'Unknown Mission'}</td>
+                                                        <td className="p-6 font-medium text-slate-600">
+                                                            {/* Find event title from events array */}
+                                                            {events.find(e => e.id === rsvp.event_id)?.title || 'Unknown Mission'}
+                                                        </td>
                                                         <td className="p-6">
-                                                            <span className={cn(
-                                                                "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider",
-                                                                rsvp.status === 'attending' ? "bg-emerald-100 text-emerald-600" :
-                                                                    rsvp.status === 'maybe' ? "bg-amber-100 text-amber-600" :
-                                                                        "bg-slate-100 text-slate-600"
-                                                            )}>
-                                                                {rsvp.status}
+                                                            <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-600">
+                                                                Confirmed
                                                             </span>
                                                         </td>
                                                         <td className="p-6 font-medium text-slate-600">{new Date(rsvp.created_at).toLocaleDateString()}</td>

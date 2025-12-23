@@ -5,7 +5,7 @@ import { ReactNode } from "react";
 export default function DashboardLayout({ children }: { children: ReactNode }) {
     return (
         <div className="relative min-h-screen bg-[#FDFBF7] text-slate-900 overflow-hidden font-sans selection:bg-cyan-200 selection:text-cyan-900">
-            {/* 1. Radical Background Layer */}
+            {/* 1. Radical Background Layer (Always Visible) */}
             <div className="fixed inset-0 z-0 opacity-40 pointer-events-none">
                 <RadicalFluidBackground />
             </div>

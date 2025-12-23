@@ -28,6 +28,10 @@
   --foreground-rgb: 30, 41, 59;
   --background-start-rgb: 253, 251, 247;
   --background-end-rgb: 253, 251, 247;
+
+  /* Space Theme Variables (Fixed) */
+  --color-bg-space: #020410;
+  --color-text-primary: #f8fafc;
 }
 
 /* Custom Utilities */

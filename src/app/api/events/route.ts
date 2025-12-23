@@ -44,10 +44,11 @@ export async function POST(request: Request) {
         const payload = eventsToInsert.map((event: any) => ({
             title: event.title,
             date: event.date,
+            time: event.time,
             description: event.description,
             location: event.location,
             type: event.type,
-            short_description: event.shortDescription, // Handle camelCase to snake_case if needed, or just pass as is if DB matches
+            short_description: event.shortDescription,
             long_description: event.longDescription
         }));
 
@@ -115,6 +116,7 @@ export async function PUT(request: Request) {
             .update({
                 title: body.title,
                 date: body.date,
+                time: body.time,
                 description: body.description,
                 location: body.location,
                 type: body.type,

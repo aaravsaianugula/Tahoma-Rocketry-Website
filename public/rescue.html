@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Rescuing Session...</title>
+    <style>
+        body {
+            background: #0f172a;
+            color: white;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #fff;
+            border-bottom-color: #f43f5e;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loader"></div>
+    <h1>Cleaning up Mission Control...</h1>
+    <p>Fixing connection issues. You will be redirected shortly.</p>
+    <script>
+        // Nuclear cookie clear
+        function deleteAllCookies() {
+            const cookies = document.cookie.split(";");
+
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i];
+                const eqPos = cookie.indexOf("=");
+                const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+
+                // Clear for all possible paths and domains
+                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/dashboard";
+                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/dashboard/admin";
+            }
+        }
+
+        deleteAllCookies();
+
+        // Wait a moment then redirect
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 1500);
+    </script>
+</body>
+
+</html>

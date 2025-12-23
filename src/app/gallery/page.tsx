@@ -124,16 +124,16 @@ export default function GalleryPage() {
                         )}
 
                         {/* 4. Image Gallery - Parallax Grid with Marquee Divider */}
-                        <div>
-                            <div className="py-12 border-y border-slate-900/5 bg-white/30 backdrop-blur-sm mb-16">
-                                <Marquee reverse={true} className="text-slate-200" repeat={8}>
-                                    <span className="text-8xl font-black uppercase tracking-tighter mx-4 opacity-50">Captured Moments</span>
-                                    <span className="text-8xl font-black uppercase tracking-tighter mx-4 opacity-50 text-amber-200">*</span>
-                                </Marquee>
-                            </div>
+                        {imageItems.length > 0 && (
+                            <div>
+                                <div className="py-12 border-y border-slate-900/5 bg-white/30 backdrop-blur-sm mb-16">
+                                    <Marquee reverse={true} className="text-slate-200" repeat={8}>
+                                        <span className="text-8xl font-black uppercase tracking-tighter mx-4 opacity-50">Captured Moments</span>
+                                        <span className="text-8xl font-black uppercase tracking-tighter mx-4 opacity-50 text-amber-200">*</span>
+                                    </Marquee>
+                                </div>
 
-                            <div className="px-4 md:px-8 max-w-[1920px] mx-auto">
-                                {imageItems.length > 0 ? (
+                                <div className="px-4 md:px-8 max-w-[1920px] mx-auto">
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
                                         {imageItems.map((item, index) => (
                                             <FadeIn key={item.id} delay={index * 0.1} className={cn(
@@ -166,14 +166,17 @@ export default function GalleryPage() {
                                             </FadeIn>
                                         ))}
                                     </div>
-                                ) : (
-                                    <div className="py-32 border border-slate-200 bg-white text-center max-w-2xl mx-auto">
-                                        <AlertCircle className="w-12 h-12 mx-auto mb-6 text-slate-300" />
-                                        <p className="font-bold text-slate-400 text-xl uppercase tracking-widest">No Visual Records</p>
-                                    </div>
-                                )}
+                                </div>
                             </div>
-                        </div>
+                        )}
+
+                        {/* Global Empty State */}
+                        {items.length === 0 && (
+                            <div className="py-32 border border-slate-200 bg-white text-center max-w-2xl mx-auto">
+                                <AlertCircle className="w-12 h-12 mx-auto mb-6 text-slate-300" />
+                                <p className="font-bold text-slate-400 text-xl uppercase tracking-widest">No Visual Records</p>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

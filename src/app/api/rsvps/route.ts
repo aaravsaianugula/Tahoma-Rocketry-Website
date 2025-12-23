@@ -4,30 +4,25 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
-    const event_id = searchParams.get('event_id');
+    const eventId = searchParams.get('eventId') || searchParams.get('event_id');
 
     try {
         let query = supabase
             .from('rsvps')
-            .select(`
-        *,
-        events (
-          title,
-          date
-        )
-      `)
+            .select('*')
             .order('created_at', { ascending: false });
 
-        if (event_id) {
-            query = query.eq('event_id', event_id);
+        if (eventId) {
+            query = query.eq('event_id', eventId);
         }
 
         const { data, error } = await query;
 
         if (error) throw error;
 
-        return NextResponse.json(data);
-    } catch (error) {
+        return NextResponse.json(data || []);
+    } catch (error: any) {
+        console.error('Get RSVPs error:', error?.message);
         return NextResponse.json(
             { error: 'Failed to fetch RSVPs' },
             { status: 500 }
@@ -57,15 +52,18 @@ export async function DELETE(request: Request) {
             );
         }
 
+        // Delete RSVP - user can only delete their own RSVPs (by email)
         const { error } = await supabase
             .from('rsvps')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('email', user.email); // Security: only delete own RSVPs
 
         if (error) throw error;
 
         return NextResponse.json({ message: 'RSVP deleted successfully' });
-    } catch (error) {
+    } catch (error: any) {
+        console.error('Delete RSVP error:', error?.message);
         return NextResponse.json(
             { error: 'Failed to delete RSVP' },
             { status: 500 }
@@ -87,7 +85,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { event_id, num_guests = 0, notes = '' } = body;
+        const { event_id, guests = 0 } = body;
 
         if (!event_id) {
             return NextResponse.json(
@@ -96,42 +94,52 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check if already RSVP'd
+        // Check if already RSVP'd using email
         const { data: existingRSVP } = await supabase
             .from('rsvps')
             .select('id')
             .eq('event_id', event_id)
-            .eq('user_id', user.id)
+            .eq('email', user.email)
             .single();
 
         if (existingRSVP) {
             return NextResponse.json(
-                { error: 'You have already RSVP\'d to this event' },
+                { error: 'You have already RSVP\'d to this event', id: existingRSVP.id },
                 { status: 400 }
             );
         }
 
-        // Insert RSVP
+        // Get user's display name
+        const userName = user.user_metadata?.full_name ||
+            user.user_metadata?.name ||
+            user.email?.split('@')[0] ||
+            'Anonymous';
+
+        // Insert RSVP with correct column names matching Supabase schema:
+        // id (uuid), name (text), email (text), guests (int4), event_id (uuid), created_at (timestamptz)
         const { data, error } = await supabase
             .from('rsvps')
             .insert({
                 event_id,
-                user_id: user.id,
-                status: 'confirmed', // Default status
-                num_guests,
-                notes
+                email: user.email,
+                name: userName,
+                guests: guests
             })
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('RSVP Insert Error:', error);
+            throw error;
+        }
 
         return NextResponse.json(data);
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('RSVP Error:', error);
+        console.error('RSVP Error message:', error?.message);
         return NextResponse.json(
-            { error: 'Failed to create RSVP' },
+            { error: 'Failed to create RSVP', details: error?.message || 'Unknown error' },
             { status: 500 }
         );
     }

@@ -10,8 +10,6 @@ export async function updateSession(request: NextRequest) {
 
     // Mock Mode Bypass
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        // If keys are missing, we don't block access.
-        // We can optionally simulate a logged-in state or just allow everything.
         return response
     }
 
@@ -44,22 +42,20 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
+    console.log('Middleware Path:', request.nextUrl.pathname);
+    console.log('Middleware User:', user ? user.email : 'No User');
+
     if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
-        return NextResponse.redirect(new URL('/login', request.url))
+        console.log('Middleware Redirecting to Login');
+        // return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    // Role-based protection
+    // Role-based protection: Admin only
     if (user && request.nextUrl.pathname.startsWith('/dashboard/admin')) {
         const userRole = user.user_metadata?.role;
         if (userRole !== 'admin') {
             return NextResponse.redirect(new URL('/dashboard/student', request.url));
         }
-    }
-
-    if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup') && user) {
-        // Redirect based on role
-        const target = user.user_metadata?.role === 'admin' ? '/dashboard/admin' : '/dashboard/student';
-        return NextResponse.redirect(new URL(target, request.url))
     }
 
     return response

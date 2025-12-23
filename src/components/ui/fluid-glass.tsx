@@ -18,7 +18,7 @@ export function FluidGlass({ children, className, intensity = "medium" }: FluidG
     return (
         <div
             className={cn(
-                "relative overflow-hidden rounded-xl border border-white/40 bg-white/80 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]",
+                "relative overflow-hidden rounded-xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-black/40 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]",
                 blurMap[intensity],
                 className
             )}

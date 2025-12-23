@@ -40,9 +40,9 @@ export async function POST(request: Request) {
                 title: body.title,
                 url: body.url,
                 type: body.type,
-                category: body.category,
-                description: body.description,
-                date: body.date
+                category: body.category || null,
+                description: body.description || null,
+                date: body.date || null  // Convert empty string to null
             }])
             .select()
             .single();

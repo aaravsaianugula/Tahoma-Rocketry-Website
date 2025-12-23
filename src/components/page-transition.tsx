@@ -5,30 +5,39 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 
 // Pro Radical Transitions (Enter-Only for Speed & Robustness)
-const TRANSITIONS = ["pixel-shutter", "curtain-wipe", "luminous", "gridlock", "supersonic", "geometric"];
+const TRANSITIONS = [
+    "generative", // Procedurally generated every time
+    "glitch-tear",
+    "tunnel-warp",
+    "pixel-shutter",
+    "curtain-wipe",
+    "luminous",
+    "supersonic"
+];
 
 export function PageTransition({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const [isVisible, setIsVisible] = useState(false);
-    const [currentTransition, setCurrentTransition] = useState("pixel-shutter");
+    const [currentTransition, setCurrentTransition] = useState("generative");
+    const [seed, setSeed] = useState(0); // Force re-render for generative
 
     useEffect(() => {
         // Immediate scroll reset
         window.scrollTo(0, 0);
 
-        // Deterministic Transition Selection
-        const hash = pathname.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const index = hash % TRANSITIONS.length;
-        setCurrentTransition(TRANSITIONS[index]);
+        // True Random Selection
+        const randomIndex = Math.floor(Math.random() * TRANSITIONS.length);
+        setCurrentTransition(TRANSITIONS[randomIndex]);
+        setSeed(Math.random());
 
         // Show transition overlay
         setIsVisible(true);
 
         // Force Unmount Timer
-        // Reduced to 600ms for snappier feel
+        // Slightly longer for complex animations
         const timer = setTimeout(() => {
             setIsVisible(false);
-        }, 800); // Slightly longer for complex animations
+        }, 1000);
 
         return () => clearTimeout(timer);
     }, [pathname]);
@@ -41,10 +50,10 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Transition Overlay Layer */}
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
                 {isVisible && (
                     <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
-                        <TransitionSelector variant={currentTransition} />
+                        <TransitionSelector variant={currentTransition} seed={seed} />
                     </div>
                 )}
             </AnimatePresence>
@@ -52,19 +61,124 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
     );
 }
 
-function TransitionSelector({ variant }: { variant: string }) {
+function TransitionSelector({ variant, seed }: { variant: string, seed: number }) {
     switch (variant) {
+        case "generative": return <GenerativeTransition seed={seed} />;
+        case "glitch-tear": return <GlitchTearTransition />;
+        case "tunnel-warp": return <TunnelWarpTransition />;
         case "pixel-shutter": return <PixelShutterTransition />;
         case "curtain-wipe": return <CurtainWipeTransition />;
         case "luminous": return <LuminousTransition />;
-        case "gridlock": return <GridlockTransition />;
         case "supersonic": return <SupersonicTransition />;
-        case "geometric": return <GeometricTransition />;
-        default: return <LuminousTransition />;
+        default: return <GenerativeTransition seed={seed} />;
     }
 }
 
 // --- Pro Enter-Only Transition Components ---
+
+function GenerativeTransition({ seed }: { seed: number }) {
+    // Procedural Generation Logic
+    const colors = ["#f43f5e", "#f59e0b", "#06b6d4", "#0f172a"]; // Rose, Amber, Cyan, Slate
+    const shapes = ["circle", "rect"];
+    const motions = ["scale", "rotate", "slide"];
+
+    // Deterministic pseudo-random based on seed for this render
+    const pseudoRandom = (offset: number) => {
+        const x = Math.sin(seed + offset) * 10000;
+        return x - Math.floor(x);
+    };
+
+    const color = colors[Math.floor(pseudoRandom(1) * colors.length)];
+    const shape = shapes[Math.floor(pseudoRandom(2) * shapes.length)];
+    const motionType = motions[Math.floor(pseudoRandom(3) * motions.length)];
+    const direction = pseudoRandom(4) > 0.5 ? 1 : -1;
+
+    const variants = {
+        initial: {
+            opacity: 1,
+            scale: motionType === "scale" ? 0 : 1,
+            rotate: motionType === "rotate" ? 180 * direction : 0,
+            x: motionType === "slide" ? 100 * direction + "%" : 0,
+        },
+        animate: {
+            opacity: 0,
+            scale: motionType === "scale" ? 2 : 1,
+            rotate: 0,
+            x: 0,
+        }
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: "circOut" }}
+            className="absolute inset-0 flex items-center justify-center bg-white overflow-hidden"
+        >
+            <motion.div
+                initial={variants.initial}
+                animate={variants.animate}
+                transition={{ duration: 0.6, ease: "backOut" }}
+                className="absolute"
+                style={{
+                    width: "100vmax",
+                    height: "100vmax",
+                    backgroundColor: color,
+                    borderRadius: shape === "circle" ? "50%" : "0%",
+                }}
+            />
+        </motion.div>
+    );
+}
+
+function GlitchTearTransition() {
+    const slices = 10;
+    return (
+        <div className="absolute inset-0 flex flex-col overflow-hidden bg-white">
+            {Array.from({ length: slices }).map((_, i) => (
+                <motion.div
+                    key={i}
+                    initial={{ x: i % 2 === 0 ? "100%" : "-100%" }}
+                    animate={{ x: "0%" }}
+                    exit={{ x: i % 2 === 0 ? "-100%" : "100%" }} // Not used in enter-only but good for reference
+                    transition={{ duration: 0.4, delay: i * 0.05, ease: "circOut" }}
+                    className="flex-1 w-full bg-slate-900 relative"
+                    style={{
+                        backgroundColor: i % 3 === 0 ? "#f43f5e" : (i % 3 === 1 ? "#06b6d4" : "#0f172a")
+                    }}
+                />
+            ))}
+            <motion.div
+                initial={{ opacity: 1 }}
+                animate={{ opacity: 0 }}
+                transition={{ duration: 0.1, delay: 0.6 }}
+                className="absolute inset-0 bg-white z-50"
+            />
+        </div>
+    );
+}
+
+function TunnelWarpTransition() {
+    return (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-900 overflow-hidden">
+            {[1, 2, 3, 4, 5].map((i) => (
+                <motion.div
+                    key={i}
+                    initial={{ scale: 0, opacity: 0, border: "2px solid #06b6d4" }}
+                    animate={{ scale: 20, opacity: [0, 1, 0], borderWidth: ["2px", "50px", "0px"] }}
+                    transition={{ duration: 1, delay: i * 0.1, ease: "easeIn" }}
+                    className="absolute w-[10vw] h-[10vw] rounded-full"
+                />
+            ))}
+            <motion.div
+                initial={{ opacity: 1 }}
+                animate={{ opacity: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                className="absolute inset-0 bg-white"
+            />
+        </div>
+    );
+}
 
 function PixelShutterTransition() {
     const blocks = Array.from({ length: 100 }); // 10x10 grid
@@ -125,34 +239,6 @@ function LuminousTransition() {
     );
 }
 
-function GridlockTransition() {
-    return (
-        <motion.div
-            className="absolute inset-0 flex items-center justify-center overflow-hidden"
-        >
-            {/* Grid Background - Fades out */}
-            <motion.div
-                initial={{ opacity: 1 }}
-                animate={{ opacity: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.8, ease: "linear" }}
-                className="absolute inset-0 bg-white"
-            >
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:60px_60px]" />
-            </motion.div>
-
-            {/* Swipe Effect */}
-            <motion.div
-                initial={{ height: "100%" }}
-                animate={{ height: "0%" }}
-                exit={{ height: "0%" }}
-                transition={{ duration: 0.6, ease: "easeInOut" }}
-                className="absolute w-full bg-slate-900/5 backdrop-blur-sm top-0"
-            />
-        </motion.div>
-    );
-}
-
 function SupersonicTransition() {
     return (
         <motion.div
@@ -168,20 +254,6 @@ function SupersonicTransition() {
                 transition={{ duration: 0.8, ease: "circOut" }}
                 className="absolute w-[40vw] h-[40vw] rounded-full border-cyan-400/50"
             />
-        </motion.div>
-    );
-}
-
-function GeometricTransition() {
-    return (
-        <motion.div
-            initial={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0% 100%)" }}
-            animate={{ clipPath: "polygon(100% 0, 100% 0, 100% 100%, 100% 100%)" }}
-            exit={{ clipPath: "polygon(100% 0, 100% 0, 100% 100%, 100% 100%)" }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute inset-0 bg-slate-900 flex items-center justify-center"
-        >
-            <div className="absolute inset-0 bg-white transform -skew-x-12 translate-x-1/2" />
         </motion.div>
     );
 }
