@@ -139,19 +139,20 @@ export default function DashboardPage() {
 
     useEffect(() => {
         const fetchData = async () => {
-            // Check auth
-            const { data: { user } } = await supabase.auth.getUser();
-            console.log('Dashboard Client Check User:', user ? user.email : 'No User');
-            if (!user) {
-                console.log('Dashboard Client Redirecting to Login');
-                // Force a hard redirect to ensure clean state
-                // window.location.href = '/login?reason=unauthenticated';
-                return;
-            }
-            setUser(user);
-
-            // Fetch events
             try {
+                // Check auth
+                const { data: { user } } = await supabase.auth.getUser();
+                console.log('Dashboard Client Check User:', user ? user.email : 'No User');
+
+                if (!user) {
+                    console.log('Dashboard Client: No session found.');
+                    setLoading(false);
+                    return;
+                }
+
+                setUser(user);
+
+                // Fetch events
                 const eventsRes = await fetch('/api/events');
                 if (eventsRes.ok) {
                     const eventsData = await eventsRes.json();
