@@ -47,35 +47,44 @@ export default function LoginPage() {
                 const isAdmin = data.user?.email === 'aaravsai.anugula@gmail.com' ||
                     data.user?.user_metadata?.role === 'admin';
 
-                // SANITIZER: Check for corrupted metadata (huge avatar_url) that crashes cookies
-                const metadata = data.user?.user_metadata || {};
-                if (metadata.avatar_url && metadata.avatar_url.length > 500) {
-                    console.warn("CRITICAL: Massive avatar_url detected. Sanitizing profile...");
-                    await supabase.auth.updateUser({
-                        data: { avatar_url: null }
-                    });
-                    console.log("Profile sanitized.");
+                // SANITIZER (Non-Blocking): 
+                // We try to clean the profile here, but if it fails (e.g. network error), w
+                // MUST still redirect the user. The Dashboard has a backup sanitizer.
+                try {
+                    const metadata = data.user?.user_metadata || {};
+                    if (metadata.avatar_url && metadata.avatar_url.length > 500) {
+                        console.warn("CRITICAL: Massive avatar_url detected. Attempting to sanitize...");
+                        // We do NOT await this. We let it run in background or race it.
+                        // Actually, 'await' is fine if we catch errors, but to be super safe and fast:
+                        await supabase.auth.updateUser({
+                            data: { avatar_url: null }
+                        }).catch(e => console.error("Login Sanitize Failed (Ignored):", e));
+                    }
+                } catch (e) {
+                    console.warn("Sanitizer error ignored to ensure redirect:", e);
                 }
 
-                // Allow a moment for the animation to play
+                // Force Redirect Mechanism
+                // We use a shorter timeout to feel snappier
                 console.log('Login successful, initiating redirect...');
                 setTimeout(() => {
-                    // Force a router refresh to update server components with new auth state
-                    router.refresh();
-                    console.log('Router refreshed. Is Admin?', isAdmin);
-
                     if (isAdmin) {
-                        console.log('Redirecting to ADMIN dashboard');
                         window.location.href = "/dashboard/admin";
                     } else {
-                        console.log('Redirecting to USER dashboard');
                         window.location.href = "/dashboard";
                     }
-                }, 1000);
+                }, 800);
             }
         } catch (err) {
-            setError("An unexpected error occurred.");
-            setLoading(false);
+            console.error("Login critical error:", err);
+            // Even if a catastrophic error happens, if we have a session, GO.
+            // Check if we actually have cookies
+            if (document.cookie.includes('sb-')) {
+                window.location.href = "/dashboard";
+            } else {
+                setError("Login failed. Please refresh and try again.");
+                setLoading(false);
+            }
         }
     };
 
