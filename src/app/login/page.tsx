@@ -47,6 +47,16 @@ export default function LoginPage() {
                 const isAdmin = data.user?.email === 'aaravsai.anugula@gmail.com' ||
                     data.user?.user_metadata?.role === 'admin';
 
+                // SANITIZER: Check for corrupted metadata (huge avatar_url) that crashes cookies
+                const metadata = data.user?.user_metadata || {};
+                if (metadata.avatar_url && metadata.avatar_url.length > 500) {
+                    console.warn("CRITICAL: Massive avatar_url detected. Sanitizing profile...");
+                    await supabase.auth.updateUser({
+                        data: { avatar_url: null }
+                    });
+                    console.log("Profile sanitized.");
+                }
+
                 // Allow a moment for the animation to play
                 console.log('Login successful, initiating redirect...');
                 setTimeout(() => {
