@@ -69,40 +69,72 @@ export default function SettingsPage() {
     const router = useRouter();
     const supabase = createClient();
 
+    const [recoveryMode, setRecoveryMode] = useState(false);
+
     useEffect(() => {
         const fetchUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                router.push('/login');
-                return;
+            try {
+                const { data: { user }, error } = await supabase.auth.getUser();
+
+                // RECOVERY LOGIC:
+                // If getUser fails or returns no user, BUT we have auth cookies, it means the session is too big (494 error).
+                // We typically redirect to login, but here we want to try to FIX it first.
+                if (error || !user) {
+                    console.warn("SETTINGS: Auth check failed.", error);
+
+                    // Check if we look like we SHOULD be logged in (cookies exist)
+                    const hasAuthCookies = document.cookie.includes('sb-');
+                    if (hasAuthCookies) {
+                        console.warn("SETTINGS: Detected auth cookies despite failure. Entering RECOVERY MODE.");
+                        setRecoveryMode(true);
+
+                        // Attempt blind repair
+                        await supabase.auth.updateUser({ data: { avatar_url: null } });
+
+                        // Wait for cookie update then reload
+                        setTimeout(() => window.location.reload(), 2000);
+                        return;
+                    }
+
+                    // Genuine logout
+                    router.push('/login');
+                    return;
+                }
+
+                // SANITIZER: Check for corrupted metadata (huge avatar_url)
+                const md = user.user_metadata || {};
+                if (md.avatar_url && md.avatar_url.length > 500) {
+                    console.warn("SETTINGS: Critical metadata corruption detected. Sanitizing profile...");
+                    setRecoveryMode(true); // Show recovery UI
+                    await supabase.auth.updateUser({
+                        data: { avatar_url: null }
+                    });
+                    window.location.reload();
+                    return;
+                }
+
+                setUser(user);
+
+                // Load saved preferences from user metadata
+                const metadata = user.user_metadata || {};
+                setDisplayName(metadata.full_name || metadata.name || user.email?.split('@')[0] || '');
+                setPilotTitle(metadata.pilot_title || 'Rocket Enthusiast');
+                setBio(metadata.bio || '');
+                setSelectedColor(metadata.avatar_color || 0);
+                setSelectedTheme(metadata.theme || 'dark');
+                setProfilePicture(metadata.avatar_url || null);
+                setEmailNotifications(metadata.email_notifications !== false);
+                setEventReminders(metadata.event_reminders !== false);
+                setLaunchAlerts(metadata.launch_alerts !== false);
+
+                setLoading(false);
+            } catch (err) {
+                console.error("Critical Auth Error:", err);
+                // Last ditch recovery attempt
+                setRecoveryMode(true);
+                await supabase.auth.updateUser({ data: { avatar_url: null } });
+                setTimeout(() => window.location.reload(), 2000);
             }
-
-            // SANITIZER: Check for corrupted metadata (huge avatar_url)
-            const md = user.user_metadata || {};
-            if (md.avatar_url && md.avatar_url.length > 500) {
-                console.warn("SETTINGS: Critical metadata corruption detected. Sanitizing profile...");
-                await supabase.auth.updateUser({
-                    data: { avatar_url: null }
-                });
-                window.location.reload();
-                return;
-            }
-
-            setUser(user);
-
-            // Load saved preferences from user metadata
-            const metadata = user.user_metadata || {};
-            setDisplayName(metadata.full_name || metadata.name || user.email?.split('@')[0] || '');
-            setPilotTitle(metadata.pilot_title || 'Rocket Enthusiast');
-            setBio(metadata.bio || '');
-            setSelectedColor(metadata.avatar_color || 0);
-            setSelectedTheme(metadata.theme || 'dark');
-            setProfilePicture(metadata.avatar_url || null);
-            setEmailNotifications(metadata.email_notifications !== false);
-            setEventReminders(metadata.event_reminders !== false);
-            setLaunchAlerts(metadata.launch_alerts !== false);
-
-            setLoading(false);
         };
         fetchUser();
     }, []);
@@ -200,12 +232,22 @@ export default function SettingsPage() {
     const userInitial = userName.charAt(0).toUpperCase();
     const currentColor = AVATAR_COLORS[selectedColor];
 
-    if (loading) {
+    if (loading || recoveryMode) {
         return (
-            <div className="min-h-screen bg-white flex items-center justify-center">
+            <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
-                    <Rocket className="w-12 h-12 text-rose-400" />
+                    <Rocket className="w-12 h-12 text-rose-400 mb-6" />
                 </motion.div>
+                {recoveryMode && (
+                    <div className="max-w-md animate-pulse">
+                        <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-2">Repairing Profile Data...</h2>
+                        <p className="text-slate-500 font-medium">
+                            We detected a data issue causing connection drops.
+                            <br />
+                            Resetting profile connection. Please wait...
+                        </p>
+                    </div>
+                )}
             </div>
         );
     }
