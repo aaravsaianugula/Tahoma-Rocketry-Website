@@ -9,39 +9,44 @@ import { useEffect } from 'react';
  */
 export function CookieScrubber() {
     useEffect(() => {
-        // Run only once on mount
-        try {
-            const rawCookies = document.cookie.split(';');
+        // Run only once on mount, but DELAY it to allow the "Dashboard Sanitizer" to run first.
+        // If we scrub too early, we log the user out before the auto-repair can happen.
+        const timer = setTimeout(() => {
+            try {
+                const rawCookies = document.cookie.split(';');
 
-            // If we have > 45 cookies, we assume something is wrong (the 165 cookie bug).
-            // (Relaxed from 20 to 45 to allow large valid Supabase sessions to load so they can be sanitized).
-            if (rawCookies.length > 45) {
-                console.error(`[Cookie Scrubber] CRITICAL: Found ${rawCookies.length} cookies. Initiating cleanup.`);
+                // If we have > 45 cookies, we assume something is wrong (the 165 cookie bug).
+                // (Relaxed from 20 to 45 to allow large valid Supabase sessions to load so they can be sanitized).
+                if (rawCookies.length > 45) {
+                    console.error(`[Cookie Scrubber] CRITICAL: Found ${rawCookies.length} cookies. Initiating cleanup.`);
 
-                // 1. Delete every single cookie found
-                rawCookies.forEach(cookie => {
-                    const eqPos = cookie.indexOf('=');
-                    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                    // 1. Delete every single cookie found
+                    rawCookies.forEach(cookie => {
+                        const eqPos = cookie.indexOf('=');
+                        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
 
-                    if (name) {
-                        // Attempt to delete for current path and root path
-                        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-                        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${window.location.pathname};`;
-                    }
-                });
+                        if (name) {
+                            // Attempt to delete for current path and root path
+                            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${window.location.pathname};`;
+                        }
+                    });
 
-                // 2. Clear Local Storage and Session Storage for good measure
-                localStorage.clear();
-                sessionStorage.clear();
+                    // 2. Clear Local Storage and Session Storage for good measure
+                    localStorage.clear();
+                    sessionStorage.clear();
 
-                console.warn('[Cookie Scrubber] Cleanup complete. Reloading page...');
+                    console.warn('[Cookie Scrubber] Cleanup complete. Reloading page...');
 
-                // 3. Force hard reload to apply changes and retry request cleanly
-                window.location.reload();
+                    // 3. Force hard reload to apply changes and retry request cleanly
+                    window.location.reload();
+                }
+            } catch (e) {
+                console.error('[Cookie Scrubber] Failed to run cleanup:', e);
             }
-        } catch (e) {
-            console.error('[Cookie Scrubber] Failed to run cleanup:', e);
-        }
+        }, 8000); // 8 second delay to allow Auto-Repair to finish
+
+        return () => clearTimeout(timer);
     }, []);
 
     return null; // Renders nothing
