@@ -22,15 +22,43 @@ export async function updateSession(request: NextRequest) {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => {
+                    // 1. STANDARD: Update request cookies for Server Components
+                    cookiesToSet.forEach(({ name, value }) => {
                         request.cookies.set(name, value)
                     })
+
+                    // 2. RESPONSE: Prepare response
                     response = NextResponse.next({
                         request: {
                             headers: request.headers,
                         },
                     })
-                    cookiesToSet.forEach(({ name, value, options }) =>
+
+                    // 3. SMART FILTER: Deduplicate & Limit Response Cookies
+                    // The "165 cookies" bug happens when the array grows unchecked.
+                    // We enforce a hard limit on how many 'Set-Cookie' headers we send back.
+
+                    // A. Deduplicate by name (Last Write Wins)
+                    const uniqueMap = new Map();
+                    cookiesToSet.forEach(c => uniqueMap.set(c.name, c));
+                    let uniqueCookies = Array.from(uniqueMap.values());
+
+                    // B. Safety Limit (Max 10)
+                    // Supabase Auth usually needs 3-5 cookies. 10 is a safe upper bound.
+                    if (uniqueCookies.length > 10) {
+                        // Prioritize "DELETE" operations (logout depends on this)
+                        const deletes = uniqueCookies.filter(c => c.value === '' || c.options?.maxAge === 0);
+                        const sets = uniqueCookies.filter(c => c.value !== '' && (c.options?.maxAge === undefined || c.options?.maxAge > 0));
+
+                        // Fill remaining slots with the most recent "sets"
+                        const slotsForSets = 10 - deletes.length;
+                        const safeSets = sets.slice(Math.max(0, sets.length - slotsForSets));
+
+                        uniqueCookies = [...deletes, ...safeSets].slice(0, 10);
+                    }
+
+                    // 4. Apply Final Filtered Cookies
+                    uniqueCookies.forEach(({ name, value, options }) =>
                         response.cookies.set(name, value, options)
                     )
                 },
