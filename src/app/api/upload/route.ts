@@ -4,14 +4,19 @@ import { NextResponse } from 'next/server';
 
 // Create a direct Supabase client for storage operations
 // This bypasses cookie issues in API routes
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Client initialization moved inside handler to prevent build errors
 
 export async function POST(request: Request) {
     // Use server client for auth check
     const supabase = await createServerClient();
+
+    // Create a direct Supabase client for storage operations
+    // This bypasses cookie issues in API routes
+    // Initialized here to avoid build-time errors if env vars are missing
+    const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
     // Check auth
     const { data: { user } } = await supabase.auth.getUser();
