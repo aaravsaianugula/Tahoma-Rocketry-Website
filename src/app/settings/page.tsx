@@ -76,6 +76,18 @@ export default function SettingsPage() {
                 router.push('/login');
                 return;
             }
+
+            // SANITIZER: Check for corrupted metadata (huge avatar_url)
+            const md = user.user_metadata || {};
+            if (md.avatar_url && md.avatar_url.length > 500) {
+                console.warn("SETTINGS: Critical metadata corruption detected. Sanitizing profile...");
+                await supabase.auth.updateUser({
+                    data: { avatar_url: null }
+                });
+                window.location.reload();
+                return;
+            }
+
             setUser(user);
 
             // Load saved preferences from user metadata

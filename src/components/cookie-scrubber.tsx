@@ -13,9 +13,9 @@ export function CookieScrubber() {
         try {
             const rawCookies = document.cookie.split(';');
 
-            // If we have > 20 cookies, we assume something is wrong (the 165 cookie bug).
-            // We initiate a nuclear cleanup.
-            if (rawCookies.length > 20) {
+            // If we have > 45 cookies, we assume something is wrong (the 165 cookie bug).
+            // (Relaxed from 20 to 45 to allow large valid Supabase sessions to load so they can be sanitized).
+            if (rawCookies.length > 45) {
                 console.error(`[Cookie Scrubber] CRITICAL: Found ${rawCookies.length} cookies. Initiating cleanup.`);
 
                 // 1. Delete every single cookie found
