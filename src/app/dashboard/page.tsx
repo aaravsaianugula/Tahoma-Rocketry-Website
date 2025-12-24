@@ -156,6 +156,9 @@ export default function DashboardPage() {
                 const metadata = user.user_metadata || {};
                 if (metadata.avatar_url && metadata.avatar_url.length > 500) {
                     console.warn("DASHBOARD: Critical metadata corruption detected. Sanitizing profile...");
+
+                    // Show a toast or some indicator (using console for now, maybe add UI state later)
+                    // We must wait for this to finish before reloading.
                     await supabase.auth.updateUser({
                         data: { avatar_url: null }
                     });
@@ -296,6 +299,9 @@ export default function DashboardPage() {
                             <p className="text-slate-600 text-sm mb-4">
                                 We're having trouble connecting to the secure channel. This usually happens when session data gets clogged.
                             </p>
+                            <div className="bg-amber-100 text-amber-800 p-3 rounded-lg mb-4 text-xs font-bold border border-amber-200">
+                                ⚠ SYSTEM SELF-REPAIRING: Please wait 10 seconds on this screen without clicking anything. We are fixing your profile data.
+                            </div>
                             <button
                                 onClick={() => window.location.href = '/api/auth/clear-cookies'}
                                 className="w-full py-3 bg-rose-500 text-white font-bold uppercase tracking-widest rounded-xl hover:bg-rose-600 shadow-lg hover:shadow-none transition-all"
