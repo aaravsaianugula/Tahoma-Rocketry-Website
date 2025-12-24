@@ -150,6 +150,21 @@ export default function DashboardPage() {
                     return;
                 }
 
+                // SANITIZER (Server-Side Fix):
+                // Check if the user has a "poisoned" profile (huge Base64 string in avatar_url)
+                // This is the root cause of the 165-cookie explosion.
+                const metadata = user.user_metadata || {};
+                if (metadata.avatar_url && metadata.avatar_url.length > 500) {
+                    console.warn("DASHBOARD: Critical metadata corruption detected. Sanitizing profile...");
+                    await supabase.auth.updateUser({
+                        data: { avatar_url: null }
+                    });
+
+                    // Force a reload to clear the cookies associated with the huge data
+                    window.location.reload();
+                    return;
+                }
+
                 setUser(user);
 
                 // Fetch events

@@ -34,28 +34,15 @@ export async function updateSession(request: NextRequest) {
                         },
                     })
 
-                    // 3. SMART FILTER: Deduplicate & Limit Response Cookies
-                    // The "165 cookies" bug happens when the array grows unchecked.
-                    // We enforce a hard limit on how many 'Set-Cookie' headers we send back.
+                    // 3. SAFE DEDUPLICATION ONLY (No Strict Limits)
+                    // We removed the 20-cookie limit because it was breaking valid huge sessions (causing logouts).
+                    // We now rely on the "Metadata Sanitizer" in the app to fix the root cause (huge profiles),
+                    // and the Client Scrubber to handle 494 errors.
 
-                    // A. Deduplicate by name (Last Write Wins)
+                    // Deduplicate by name (Last Write Wins)
                     const uniqueMap = new Map();
                     cookiesToSet.forEach(c => uniqueMap.set(c.name, c));
-                    let uniqueCookies = Array.from(uniqueMap.values());
-
-                    // B. Safety Limit (Max 20)
-                    // Relaxed from 10 to 20 to accommodate larger Auth tokens.
-                    if (uniqueCookies.length > 20) {
-                        // Prioritize "DELETE" operations (logout depends on this)
-                        const deletes = uniqueCookies.filter(c => c.value === '' || c.options?.maxAge === 0);
-                        const sets = uniqueCookies.filter(c => c.value !== '' && (c.options?.maxAge === undefined || c.options?.maxAge > 0));
-
-                        // Fill remaining slots with the most recent "sets"
-                        const slotsForSets = 20 - deletes.length;
-                        const safeSets = sets.slice(Math.max(0, sets.length - slotsForSets));
-
-                        uniqueCookies = [...deletes, ...safeSets].slice(0, 20);
-                    }
+                    const uniqueCookies = Array.from(uniqueMap.values());
 
                     // 4. Apply Final Filtered Cookies
                     uniqueCookies.forEach(({ name, value, options }) =>
