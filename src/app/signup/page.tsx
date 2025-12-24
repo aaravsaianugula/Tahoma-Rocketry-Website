@@ -34,6 +34,8 @@ export default function SignupPage() {
                     data: {
                         full_name: name,
                     },
+                    // Redirect to the account verified page after email confirmation
+                    emailRedirectTo: `${window.location.origin}/auth/callback?next=/account-verified`,
                 },
             });
 

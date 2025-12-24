@@ -172,6 +172,11 @@ export default function LoginPage() {
                                     />
                                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within/input:text-slate-900 transition-colors" />
                                 </div>
+                                <div className="text-right mt-1">
+                                    <Link href="/forgot-password" className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-900 transition-colors">
+                                        Forgot Password?
+                                    </Link>
+                                </div>
                             </div>
 
                             {/* Emergency Reset Button for stuck users */}
