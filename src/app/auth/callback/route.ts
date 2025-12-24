@@ -19,6 +19,13 @@ export async function GET(request: NextRequest) {
                     },
                     setAll(cookiesToSet) {
                         try {
+                            // DEFENSIVE: Limit to 8 cookies max to prevent header overflow
+                            // (Supabase chunking can sometimes explode if metadata is huge)
+                            if (cookiesToSet.length > 8) {
+                                console.warn(`Auth Callback: Truncating ${cookiesToSet.length} cookies to 8.`);
+                                cookiesToSet = cookiesToSet.slice(0, 8);
+                            }
+
                             cookiesToSet.forEach(({ name, value, options }) =>
                                 cookieStore.set(name, value, options)
                             )
