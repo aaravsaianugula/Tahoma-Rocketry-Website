@@ -8,35 +8,6 @@ export async function updateSession(request: NextRequest) {
         },
     })
 
-    // --- CIRCUIT BREAKER: Cookie Overflow Protection ---
-    // Detect if browser is sending a massive amount of cookies (e.g. > 165 cookies / 5KB)
-    // If so, we wipe them all to save the domain from 494 errors.
-    const cookieHeader = request.headers.get('cookie') || '';
-    const allCookies = request.cookies.getAll();
-
-    if (cookieHeader.length > 4000 || allCookies.length > 20) {
-        console.warn('CRITICAL: Massive Cookie Overflow detected. Wiping all cookies to restore access.');
-
-        // Create a clear-site-data response
-        const clearResponse = NextResponse.redirect(new URL('/login?reason=session_reset', request.url));
-
-        // Nuking all cookies explicitly
-        allCookies.forEach(c => {
-            clearResponse.cookies.set(c.name, '', { maxAge: 0, path: '/' });
-            clearResponse.cookies.delete(c.name);
-        });
-
-        // Nuke usage of 'sb-' cookies specifically just in case
-        clearResponse.cookies.getAll().forEach(c => {
-            if (c.name.startsWith('sb-')) {
-                clearResponse.cookies.set(c.name, '', { maxAge: 0, path: '/' });
-            }
-        });
-
-        return clearResponse;
-    }
-    // ---------------------------------------------------
-
     // Mock Mode Bypass
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
         return response
@@ -50,21 +21,24 @@ export async function updateSession(request: NextRequest) {
                 getAll() {
                     return request.cookies.getAll()
                 },
+                // SAFE GUARD: Truncate cookies to prevent 494 "Too Large" errors
                 setAll(cookiesToSet) {
-                    // Defensive: Don't set too many cookies at once
-                    if (cookiesToSet.length > 6) {
-                        console.warn('Supabase trying to set excessive cookies. Truncating.');
-                        cookiesToSet = cookiesToSet.slice(0, 6);
+                    // If Supabase tries to set more than 4 cookies, we only take the last 4.
+                    // This prevents the "165 cookies" explosion by physically limiting the list.
+                    if (cookiesToSet.length > 4) {
+                        cookiesToSet = cookiesToSet.slice(cookiesToSet.length - 4);
                     }
 
                     cookiesToSet.forEach(({ name, value, options }) => {
                         request.cookies.set(name, value)
                     })
+
                     response = NextResponse.next({
                         request: {
                             headers: request.headers,
                         },
                     })
+
                     cookiesToSet.forEach(({ name, value, options }) =>
                         response.cookies.set(name, value, options)
                     )
