@@ -237,13 +237,26 @@ export default function DashboardPage() {
     const avatarColor = AVATAR_COLORS[avatarColorIndex] || AVATAR_COLORS[0];
     const avatarUrl = user?.user_metadata?.avatar_url;
 
+    const [showRecovery, setShowRecovery] = useState(false);
+
+    useEffect(() => {
+        // Safety timeout to detect hanging (e.g. 494 Header Too Large errors)
+        const timer = setTimeout(() => {
+            if (loading) {
+                setShowRecovery(true);
+            }
+        }, 8000); // 8 seconds timeout
+
+        return () => clearTimeout(timer);
+    }, [loading]);
+
     if (loading) {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center relative overflow-hidden">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-center z-10"
+                    className="text-center z-10 p-8 max-w-md"
                 >
                     <motion.div
                         animate={{ rotate: 360 }}
@@ -252,7 +265,29 @@ export default function DashboardPage() {
                     >
                         <Rocket className="w-full h-full text-rose-400" />
                     </motion.div>
-                    <p className="text-slate-500 font-bold uppercase tracking-widest">Initializing Mission Control...</p>
+                    <p className="text-slate-500 font-bold uppercase tracking-widest mb-6">Initializing Mission Control...</p>
+
+                    {showRecovery && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-rose-50 border-2 border-rose-200 p-6 rounded-2xl"
+                        >
+                            <div className="flex justify-center mb-3">
+                                <Shield className="w-8 h-8 text-rose-500" />
+                            </div>
+                            <h3 className="text-slate-900 font-black uppercase mb-2">Connection Stalled</h3>
+                            <p className="text-slate-600 text-sm mb-4">
+                                We're having trouble connecting to the secure channel. This usually happens when session data gets clogged.
+                            </p>
+                            <button
+                                onClick={() => window.location.href = '/api/auth/clear-cookies'}
+                                className="w-full py-3 bg-rose-500 text-white font-bold uppercase tracking-widest rounded-xl hover:bg-rose-600 shadow-lg hover:shadow-none transition-all"
+                            >
+                                Force Reset Connection
+                            </button>
+                        </motion.div>
+                    )}
                 </motion.div>
             </div>
         );
