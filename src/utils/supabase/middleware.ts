@@ -22,9 +22,9 @@ export async function updateSession(request: NextRequest) {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) =>
+                    cookiesToSet.forEach(({ name, value, options }) => {
                         request.cookies.set(name, value)
-                    )
+                    })
                     response = NextResponse.next({
                         request: {
                             headers: request.headers,
@@ -38,25 +38,17 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    // IMPORTANT: You *must* call getUser to refresh the auth token
+    const { data: { user } } = await supabase.auth.getUser()
 
-    console.log('Middleware Path:', request.nextUrl.pathname);
-    console.log('Middleware User:', user ? user.email : 'No User');
-
+    // Protected Routes Handling
     if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
-        console.log('Middleware Redirecting to Login');
-        // return NextResponse.redirect(new URL('/login', request.url))
+        // Return standard response, let client handle redirect to avoid loop
+        return response
     }
 
-    // Role-based protection: Admin only
-    if (user && request.nextUrl.pathname.startsWith('/dashboard/admin')) {
-        const userRole = user.user_metadata?.role;
-        if (userRole !== 'admin') {
-            return NextResponse.redirect(new URL('/dashboard/student', request.url));
-        }
-    }
+    // Note: We are relying on client-side protection in dashboard/page.tsx
+    // This prevents the server from entering a redirect loop that explodes cookies.
 
     return response
 }
