@@ -38,8 +38,22 @@ export async function GET(request: NextRequest) {
                 },
             }
         )
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
-        if (!error) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+        if (!error && data?.user) {
+            // METADATA SANITIZER:
+            // Check if the user has a "poisoned" profile (huge Base64 string in avatar_url)
+            // which causes the 165-cookie explosion.
+            const metadata = data.user.user_metadata || {};
+            if (metadata.avatar_url && metadata.avatar_url.length > 2000) {
+                console.warn('CRITICAL: Detected huge avatar_url metadata (~' + metadata.avatar_url.length + ' chars). Sanitizing profile...');
+
+                // Nuke the huge data to stop cookie explosion
+                await supabase.auth.updateUser({
+                    data: { avatar_url: null }
+                });
+                console.log('Profile sanitized. Redirecting.');
+            }
+
             return NextResponse.redirect(`${origin}${next}`)
         }
     }

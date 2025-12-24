@@ -126,16 +126,7 @@ export default function SettingsPage() {
 
             if (uploadError) {
                 console.error('Upload error:', uploadError);
-                // Fallback to data URL
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const dataUrl = e.target?.result as string;
-                    setProfilePicture(dataUrl);
-                    await supabase.auth.updateUser({
-                        data: { avatar_url: dataUrl }
-                    });
-                };
-                reader.readAsDataURL(file);
+                alert('Upload failed. Please try again.');
                 return;
             }
 
