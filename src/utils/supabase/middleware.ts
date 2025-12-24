@@ -2,6 +2,23 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+    // 1. EMERGENCY CLEANUP: Detect specific cookie explosion (165+ cookies)
+    // If we see too many cookies, we use the "Clear-Site-Data" header to nuke them all at once.
+    // This is much safer than sending 165 "Set-Cookie" delete headers (which crashes the response).
+    const allCookies = request.cookies.getAll();
+    if (allCookies.length > 20) {
+        console.warn('CRITICAL: Massive Cookie Overflow detected. Sending Clear-Site-Data command.');
+
+        // Redirect to login, but attach the NUCLEAR header.
+        const clearResponse = NextResponse.redirect(new URL('/login?reason=overflow_reset', request.url));
+
+        // This header tells modern browsers (Chrome/Edge/Firefox) to verify and delete all cookies for this domain.
+        // It works on Localhost (Secure Context).
+        clearResponse.headers.set('Clear-Site-Data', '"cookies"');
+
+        return clearResponse;
+    }
+
     let response = NextResponse.next({
         request: {
             headers: request.headers,
@@ -22,42 +39,32 @@ export async function updateSession(request: NextRequest) {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
-                    // 1. STANDARD: Update request cookies for Server Components
+                    // Standard Update
                     cookiesToSet.forEach(({ name, value }) => {
                         request.cookies.set(name, value)
                     })
 
-                    // 2. RESPONSE: Prepare response
                     response = NextResponse.next({
                         request: {
                             headers: request.headers,
                         },
                     })
 
-                    // 3. SMART FILTER: Deduplicate & Limit Response Cookies
-                    // The "165 cookies" bug happens when the array grows unchecked.
-                    // We enforce a hard limit on how many 'Set-Cookie' headers we send back.
-
-                    // A. Deduplicate by name (Last Write Wins)
+                    // SMART FILTER: Limit Response Cookies to 10 max
                     const uniqueMap = new Map();
                     cookiesToSet.forEach(c => uniqueMap.set(c.name, c));
                     let uniqueCookies = Array.from(uniqueMap.values());
 
-                    // B. Safety Limit (Max 10)
-                    // Supabase Auth usually needs 3-5 cookies. 10 is a safe upper bound.
                     if (uniqueCookies.length > 10) {
-                        // Prioritize "DELETE" operations (logout depends on this)
                         const deletes = uniqueCookies.filter(c => c.value === '' || c.options?.maxAge === 0);
                         const sets = uniqueCookies.filter(c => c.value !== '' && (c.options?.maxAge === undefined || c.options?.maxAge > 0));
 
-                        // Fill remaining slots with the most recent "sets"
                         const slotsForSets = 10 - deletes.length;
                         const safeSets = sets.slice(Math.max(0, sets.length - slotsForSets));
 
                         uniqueCookies = [...deletes, ...safeSets].slice(0, 10);
                     }
 
-                    // 4. Apply Final Filtered Cookies
                     uniqueCookies.forEach(({ name, value, options }) =>
                         response.cookies.set(name, value, options)
                     )
