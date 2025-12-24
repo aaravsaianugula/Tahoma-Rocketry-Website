@@ -19,6 +19,13 @@ export async function GET(request: NextRequest) {
                     },
                     setAll(cookiesToSet) {
                         try {
+                            // SAFEGUARD: If Supabase tries to set > 25 cookies, something is wrong.
+                            // We truncate to prevent the 494 error.
+                            if (cookiesToSet.length > 25) {
+                                console.warn(`Auth Callback: Truncating ${cookiesToSet.length} cookies to 25 SAFE limit.`);
+                                cookiesToSet = cookiesToSet.slice(0, 25);
+                            }
+
                             cookiesToSet.forEach(({ name, value, options }) =>
                                 cookieStore.set(name, value, options)
                             )
