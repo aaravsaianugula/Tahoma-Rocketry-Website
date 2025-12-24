@@ -396,13 +396,31 @@ export default function DashboardPage() {
 
                     {/* Bottom Actions */}
                     <div className="space-y-2">
-                        <Link
-                            href="/settings"
-                            className="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-100 font-bold text-sm transition-all"
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault();
+                                // SAFE NAVIGATION:
+                                // To prevent 494 Request Header Too Large errors, we check cookies BEFORE navigating.
+                                const rawCookies = document.cookie.split(';');
+                                if (rawCookies.length > 40) {
+                                    console.warn('Scrubbing cookies before settings navigation...');
+                                    // Scrub logic
+                                    rawCookies.forEach(cookie => {
+                                        const eqPos = cookie.indexOf('=');
+                                        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                                        if (name.includes('sb-')) { // Only kill Supabase tokens
+                                            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                                            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${window.location.pathname};`;
+                                        }
+                                    });
+                                }
+                                window.location.href = "/settings";
+                            }}
+                            className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-100 font-bold text-sm transition-all text-left"
                         >
                             <Settings className="w-5 h-5" />
                             Settings
-                        </Link>
+                        </button>
                         <button
                             onClick={handleLogout}
                             className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-rose-500 hover:bg-rose-50 font-bold text-sm transition-all"
