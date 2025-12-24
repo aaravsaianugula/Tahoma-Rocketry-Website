@@ -19,13 +19,6 @@ export async function GET(request: NextRequest) {
                     },
                     setAll(cookiesToSet) {
                         try {
-                            // DEFENSIVE: Limit to 20 cookies max (relaxed from 8)
-                            // Supabase chunking can sometimes use > 10 cookies for fat tokens.
-                            if (cookiesToSet.length > 20) {
-                                console.warn(`Auth Callback: Truncating ${cookiesToSet.length} cookies to 20.`);
-                                cookiesToSet = cookiesToSet.slice(0, 20);
-                            }
-
                             cookiesToSet.forEach(({ name, value, options }) =>
                                 cookieStore.set(name, value, options)
                             )
